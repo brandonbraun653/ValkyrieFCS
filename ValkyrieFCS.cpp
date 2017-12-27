@@ -1,4 +1,6 @@
-#include <../CMSIS_RTOS/cmsis_os.h>
+
+#include "FreeRTOS.h"
+
 #include "include/thor.h"
 #include "include/spi.h"
 #include "include/uart.h"
@@ -21,7 +23,6 @@ using namespace ThorDef::SPI;
 
 /* Quick note, don't allocate memory up here. It will be null and cause issues.
  * Only allocate inside the main func(). */
-osThreadId sdTaskHandle;
 
 int main(void)
 {
@@ -68,10 +69,9 @@ int main(void)
 	
 	sdCardTaskInit();
 	
-	osThreadDef(SDCARD, sdCardTask, osPriorityNormal, 0, (uint16_t)4096);
-	sdTaskHandle = osThreadCreate(osThread(SDCARD), NULL);
 	
-	osKernelStart();
+	//xTaskCreate(sdCardTask, "sdTask", 1000, NULL, 1, NULL);
+	
 	for (;;)
 	{
 	}

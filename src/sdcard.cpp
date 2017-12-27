@@ -29,16 +29,19 @@ void sdCardTaskInit()
 	sd->initialize();
 }
 
-static void sdCardTask(const void* argument)
+void sdCardTask(void* argument)
 {
-	//(void) argument;
+	//need to do this as an infinite loop...
+	for(;;)	
+	{
+		sd->fopen("thw.txt", FA_CREATE_ALWAYS | FA_WRITE);
+		sd->write((uint8_t*)msg, strlen(msg), bw);
+		sd->fclose();
 	
-	sd->fopen("thw.txt", FA_CREATE_ALWAYS | FA_WRITE);
-	sd->write((uint8_t*)msg, strlen(msg), bw);
-	sd->fclose();
+		ledPin->write(HIGH);
+		//osDelay(250);
+		ledPin->write(LOW);
+		//osDelay(250);
+	}
 	
-	ledPin->write(HIGH);
-	osDelay(250);
-	ledPin->write(LOW);
-	osDelay(250);
 }

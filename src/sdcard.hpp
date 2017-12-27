@@ -2,8 +2,6 @@
 #ifndef SDCARD_HPP_
 #define SDCARD_HPP_
 
-#include <../CMSIS_RTOS/cmsis_os.h>
-
 /* C/C++ Includes */
 #include <stdint.h>
 #include <stdlib.h>
