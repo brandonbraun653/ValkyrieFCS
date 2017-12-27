@@ -1,5 +1,6 @@
 
 #include "FreeRTOS.h"
+#include "task.h"
 
 #include "include/thor.h"
 #include "include/spi.h"
@@ -67,11 +68,12 @@ int main(void)
 	
 	std::string outputMessage, sAX, sAY, sAZ;
 	
-	sdCardTaskInit();
 	
 	
-	//xTaskCreate(sdCardTask, "sdTask", 1000, NULL, 1, NULL);
 	
+	xTaskCreate(sdCardTask, "sdTask", 1000, NULL, 1, NULL);
+	
+	vTaskStartScheduler();
 	for (;;)
 	{
 	}

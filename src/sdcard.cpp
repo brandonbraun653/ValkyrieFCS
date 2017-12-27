@@ -31,7 +31,11 @@ void sdCardTaskInit()
 
 void sdCardTask(void* argument)
 {
-	//need to do this as an infinite loop...
+	
+	sdCardTaskInit();
+	
+	TickType_t xLastWakeTime = xTaskGetTickCount();
+	
 	for(;;)	
 	{
 		sd->fopen("thw.txt", FA_CREATE_ALWAYS | FA_WRITE);
@@ -39,9 +43,12 @@ void sdCardTask(void* argument)
 		sd->fclose();
 	
 		ledPin->write(HIGH);
-		//osDelay(250);
+		vTaskDelay(pdMS_TO_TICKS(250));
 		ledPin->write(LOW);
-		//osDelay(250);
+		vTaskDelay(pdMS_TO_TICKS(250));
+		
+		
+		vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(2000));
 	}
 	
 }

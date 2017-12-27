@@ -18,9 +18,12 @@
 #include <boost/smart_ptr.hpp>
 #include <boost/make_shared.hpp>
 
+/* FreeRTOS Includes */
+#include "FreeRTOS.h"
+#include "task.h"
 
 extern void sdCardTaskInit();
-extern void sdCardTask();
+extern void sdCardTask(void* argument);
 
 
 #endif /* SDCARD_HPP_ */
