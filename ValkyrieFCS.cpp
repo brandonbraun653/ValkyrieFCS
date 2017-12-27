@@ -3,7 +3,9 @@
 #include "include/spi.h"
 #include "include/uart.h"
 #include "include/gpio.h"
+#include "include/print.h"
 #include "libraries/SD/sd.h"
+#include "stm32f7_lsm9ds0.h"
 
 #ifdef DEBUG
 #include "SysprogsProfiler.h"
@@ -15,11 +17,8 @@
 using namespace ThorDef::GPIO;
 using namespace ThorDef::SPI;
 
-SPIClass_sPtr spi = spi2;
-UARTClass_sPtr uart = uart4;
-SDCard_sPtr sd = boost::make_shared<SDCard>(spi);
-GPIOClass_sPtr ledPin = boost::make_shared<GPIOClass>(GPIOA, PIN_5, ULTRA_SPD, NOALTERNATE);
-GPIOClass_sPtr SD_SSPin = boost::make_shared<GPIOClass>(GPIOB, PIN_12, ULTRA_SPD, NOALTERNATE);
+/* Quick note, don't allocate memory up here. It will be null and cause issues.
+ * Only allocate inside the main func(). */
 
 int main(void)
 {
@@ -31,24 +30,40 @@ int main(void)
 	InitializeInstrumentingProfiler();
 	#endif 
 	
-	uint8_t testTextTX[] = "\nWell I guess this worked.\n";
-	size_t txSize = sizeof(testTextTX) / sizeof(testTextTX[0]);
-	uint8_t testTextRX[50];
-	uint32_t total = 0;
-	volatile FRESULT error = FR_OK;
-	memset(testTextRX, 0, 50);
+	/* Fill in the Accelerometer and Mag details */
+	LSM9DS0_Settings sensor_settings;
+	sensor_settings.scale.accel = A_SCALE_2G;
+	sensor_settings.scale.mag = M_SCALE_2GS;
+	sensor_settings.scale.gyro = G_SCALE_245DPS;
+				   
+	sensor_settings.odr.accel = A_ODR_50;
+	sensor_settings.odr.mag = M_ODR_50;
+	sensor_settings.odr.gyro = G_ODR_190_BW_125;
+	
+	/* Object allocation */
+	GPIOClass_sPtr ledPin = boost::make_shared<GPIOClass>(GPIOA, PIN_5, ULTRA_SPD, NOALTERNATE);		/* LED Status Signal */
+	GPIOClass_sPtr SD_SSPin = boost::make_shared<GPIOClass>(GPIOB, PIN_12, ULTRA_SPD, NOALTERNATE);		/* SD Slave Select */
+	GPIOClass_sPtr lsm_ss_xm = boost::make_shared<GPIOClass>(GPIOA, PIN_9, ULTRA_SPD, NOALTERNATE);		/* Accel/Mag Slave Select */
+	GPIOClass_sPtr lsm_ss_g = boost::make_shared<GPIOClass>(GPIOA, PIN_8, ULTRA_SPD, NOALTERNATE);		/* Gyro Slave Select */
+	
+	SPIClass_sPtr sd_spi = spi2;
+	SPIClass_sPtr lsm_spi = spi3;
+	
+	UARTClass_sPtr uart = uart4;
+	
+	SDCard_sPtr sd = boost::make_shared<SDCard>(sd_spi);
+	
+	LSM9DS0 sensor(lsm_spi, lsm_ss_xm, lsm_ss_g, sensor_settings);
+	sensor.initialize();
 	
 	/* Initialize success led */
 	ledPin->mode(OUTPUT_PP);
 	ledPin->write(HIGH);
 	
 	/* Initialize SPI */
-	spi->attachPin(SD_SSPin);
-	spi->setSSMode(SS_MANUAL_CONTROL);
-	
-	spi->begin(EXTERNAL_SLAVE_SELECT);
-	spi->setTxModeBlock();
-	spi->setRxModeBlock();
+	sd_spi->attachPin(SD_SSPin);
+	sd_spi->setSSMode(SS_MANUAL_CONTROL);
+	sd_spi->begin(EXTERNAL_SLAVE_SELECT);
 	
 	/* Initialize serial */
 	uart->begin(115200);
@@ -57,49 +72,41 @@ int main(void)
 	
 	/* Initialize the SD Card */
 	sd->initialize();
-
-	/* Write and read!! */
-	//error = sd->format(FM_FAT32);
-	error = sd->fopen("newTest.txt", FA_CREATE_ALWAYS | FA_WRITE);
-	error = sd->write(testTextTX, txSize, total);
-	error = sd->fclose();
-
-	error = sd->fopen("newTest.txt", FA_OPEN_EXISTING | FA_READ);
-	error = sd->read(testTextRX, txSize, total);
-	error = sd->fclose();
-	
-	const char* msg = "Received Data:\n";
-	uart->write((uint8_t*)msg, sizeof(msg) / sizeof(msg[0]));
-	HAL_Delay(1);
-	uart->write(testTextRX, txSize);
 	
 	/* If the above doesn't work, neither will this: */
-	volatile double testData[] = { 0.23434, -0.7373, 3.912345 };
-	volatile size_t sizeTest = sizeof(testData);
-
-	error = sd->fopen("raw_data.dat", FA_CREATE_ALWAYS | FA_WRITE);
-	error = sd->write((uint8_t*)testData, sizeTest, total);
-	error = sd->fclose();
-
-	memset((void*)testData, 0, sizeTest);
-
-	error = sd->fopen("raw_data.dat", FA_OPEN_EXISTING | FA_READ);
-	error = sd->read((uint8_t*)testData, sizeTest, total);
-	error = sd->fclose();
+	volatile float testData[] = { 0.0, 0.0, 0.0 };
+	volatile FRESULT error = FR_OK;
 	
-	if (error != FR_OK)
-		while (1)
-		{
-			;
-		}
+	std::string outputMessage, sAX, sAY, sAZ;
 	
-	sd->deInitialize();
-
+	sd->fopen("raw_data.dat", FA_CREATE_ALWAYS | FA_WRITE);
+	
 	for (;;)
 	{
+		/* Grab a new set of data */
+		sensor.readAll();
+		sensor.calcAll();
+		
+		testData[0] = sensor.sensorData.accel.x;
+		testData[1] = sensor.sensorData.accel.y;
+		testData[2] = sensor.sensorData.accel.z;
+		
+		/* Write that data to the serial monitor */
+		sAX = float2String(testData[0]);
+		sAY = float2String(testData[1]);
+		sAZ = float2String(testData[2]);
+		
+		outputMessage = "Accel X: " + sAX + " \tAccel Y: " + "\tAccel Z: " + sAZ + "\n";
+		uart->write(outputMessage);
+		
+		/* Write to the sd card */
+		
+		
+		
+		
 		ledPin->write(HIGH);
-		HAL_Delay(250);
+		HAL_Delay(1);
 		ledPin->write(LOW);
-		HAL_Delay(250);
+		HAL_Delay(1);
 	}
 }
