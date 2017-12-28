@@ -27,6 +27,10 @@ void sdCardTaskInit()
 	
 	/* Initialize the SD Card */
 	sd->initialize();
+	
+	/* Set up the GPIO Led */
+	ledPin->mode(OUTPUT_PP);
+	ledPin->write(LOW);
 }
 
 void sdCardTask(void* argument)

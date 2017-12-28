@@ -32,7 +32,7 @@ int main(void)
 
 	#ifdef DEBUG
 	InitializeSamplingProfiler();
-	InitializeInstrumentingProfiler();
+	//InitializeInstrumentingProfiler();
 	#endif 
 	
 	/* Fill in the Accelerometer and Mag details */
@@ -46,29 +46,27 @@ int main(void)
 	sensor_settings.odr.gyro = G_ODR_190_BW_125;
 	
 	/* Object allocation */
-	GPIOClass_sPtr lsm_ss_xm = boost::make_shared<GPIOClass>(GPIOA, PIN_9, ULTRA_SPD, NOALTERNATE);		/* Accel/Mag Slave Select */
-	GPIOClass_sPtr lsm_ss_g = boost::make_shared<GPIOClass>(GPIOA, PIN_8, ULTRA_SPD, NOALTERNATE);		/* Gyro Slave Select */
-	
-	SPIClass_sPtr lsm_spi = spi3;
-	
-	UARTClass_sPtr uart = uart4;
-	
-	
-	LSM9DS0 sensor(lsm_spi, lsm_ss_xm, lsm_ss_g, sensor_settings);
-	sensor.initialize();
-	
-	/* Initialize serial */
-	uart->begin(115200);
-	uart->setTxModeIT();
-	uart->setRxModeIT();
+// 	GPIOClass_sPtr lsm_ss_xm = boost::make_shared<GPIOClass>(GPIOA, PIN_9, ULTRA_SPD, NOALTERNATE);		/* Accel/Mag Slave Select */
+// 	GPIOClass_sPtr lsm_ss_g = boost::make_shared<GPIOClass>(GPIOA, PIN_8, ULTRA_SPD, NOALTERNATE);		/* Gyro Slave Select */
+// 	
+// 	SPIClass_sPtr lsm_spi = spi3;
+// 	
+// 	UARTClass_sPtr uart = uart4;
+// 	
+// 	
+// 	LSM9DS0 sensor(lsm_spi, lsm_ss_xm, lsm_ss_g, sensor_settings);
+// 	sensor.initialize();
+// 	
+// 	/* Initialize serial */
+// 	uart->begin(115200);
+// 	uart->setTxModeIT();
+// 	uart->setRxModeIT();
 	
 	/* If the above doesn't work, neither will this: */
 	volatile float testData[] = { 0.0, 0.0, 0.0 };
 	volatile FRESULT error = FR_OK;
 	
 	std::string outputMessage, sAX, sAY, sAZ;
-	
-	
 	
 	
 	xTaskCreate(sdCardTask, "sdTask", 1000, NULL, 1, NULL);
