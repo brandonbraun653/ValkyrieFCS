@@ -69,7 +69,7 @@ int main(void)
 	std::string outputMessage, sAX, sAY, sAZ;
 	
 	
-	xTaskCreate(sdCardTask, "sdTask", 1000, NULL, 1, NULL);
+	xTaskCreate(sdCardTask, "sdTask", 2000, NULL, 1, NULL);
 	
 	vTaskStartScheduler();
 	for (;;)
