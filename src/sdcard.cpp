@@ -63,7 +63,7 @@ void sdCardTask(void* argument)
 			portEXIT_CRITICAL();
 			
 			ledPin->write(HIGH);
-			vTaskDelay(pdMS_TO_TICKS(250));
+			vTaskDelay(pdMS_TO_TICKS(100));
 			ledPin->write(LOW);
 			vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1000));
 		}
