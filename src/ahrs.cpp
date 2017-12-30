@@ -25,6 +25,10 @@ void ahrsTask(void* argument)
 	 * mode, but this is ok due to how incredibly short it takes to read out data. ~100uS*/
  	sensor.initialize();
 	
+	
+	IMUData_t sensorData;
+	
+	
 	TickType_t lastTimeWoken = xTaskGetTickCount();
 	for (;;)
 	{
@@ -32,6 +36,23 @@ void ahrsTask(void* argument)
 		sensor.readAll();
 		sensor.calcAll();
 		portEXIT_CRITICAL();
+		
+		sensorData.ax = sensor.data.accel.x;
+		sensorData.ay = sensor.data.accel.y;
+		sensorData.az = sensor.data.accel.z;
+		
+		sensorData.gx = sensor.data.gyro.x;
+		sensorData.gy = sensor.data.gyro.y;
+		sensorData.gz = sensor.data.gyro.z;
+		
+		sensorData.mx = sensor.data.mag.x;
+		sensorData.my = sensor.data.mag.y;
+		sensorData.mz = sensor.data.mag.z;
+		
+		sensorData.mSTime = 0.0;
+		
+		/* This should trigger a write to the SD flight logger */
+		xQueueSendToBack(qIMUFlightData, &sensorData, 0);
 		
 		/* Constant frequency sampling of 100 Hz */
 		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(10));

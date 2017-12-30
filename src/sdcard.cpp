@@ -3,21 +3,7 @@
 using namespace ThorDef::SPI;
 using namespace ThorDef::GPIO;
 
-/* Fake set of data that might get logged. Only the length 
- * and data type is important at the moment.*/
-double data[] = {
-	1.3423,
-	7.4554,
-	8.3224, 
-	1.3423,
-	7.4554,
-	8.3224,
-	1.3423,
-	7.4554,
-	8.3224,
-};
 
-uint32_t bw;
 
 void sdCardTask(void* argument)
 {
@@ -25,11 +11,7 @@ void sdCardTask(void* argument)
 	SPIClass_sPtr sd_spi = spi2;
 	SDCard_sPtr sd = boost::make_shared<SDCard>(sd_spi);
 	GPIOClass_sPtr SD_SSPin = boost::make_shared<GPIOClass>(GPIOB, PIN_12, ULTRA_SPD, NOALTERNATE); /* SD Slave Select */
-	GPIOClass_sPtr ledPin = boost::make_shared<GPIOClass>(GPIOA, PIN_5, ULTRA_SPD, NOALTERNATE); /* LED Status Signal */
 	
-	/* Set up the GPIO Led */
-	ledPin->mode(OUTPUT_PP);
-	ledPin->write(LOW);
 	
 	/* Set up SPI */
 	sd_spi->attachPin(SD_SSPin);
@@ -39,43 +21,43 @@ void sdCardTask(void* argument)
 	/* Initialize the SD Card */
 	FRESULT error = FR_OK;
 	portENTER_CRITICAL();
-	error = sd->initialize(true, FM_FAT32);
+	error = sd->initialize();//true, FM_FAT32);
 	portEXIT_CRITICAL();
 	
-	TickType_t xLastWakeTime = xTaskGetTickCount();
+	IMUData_t logData;
+	size_t logDataSize = sizeof(logData);
+	uint32_t bytesWritten = 0, dummyWrite = 0;
+	
+	
 	error = sd->fopen("dataFile", FA_CREATE_ALWAYS | FA_WRITE);
 	
+	TickType_t xLastWakeTime = xTaskGetTickCount();
 	for(;;)	
 	{
 		if (error == FR_OK)
-		{
-			/* Test out how quickly a write can occur for 1 unit log.
-			 * Results:
-			 * 1st write == ~4-5mS
-			 * all other == ~60uS
-			 * 
-			 * It would appear that only the first write takes a long time.
-			 * All subsequent writes to that particular file take a very miniscule
-			 * amount of time. This is great news. 
-			 * */
-			portENTER_CRITICAL();
-			error = sd->write((uint8_t*)data, sizeof(data)/sizeof(data[0]), bw);
-			portEXIT_CRITICAL();
+		{		
+			/* Indefinitely block the task if no data is ready...I think this is right? */
+			xQueueReceive(qIMUFlightData, &logData, portMAX_DELAY);
 			
-			ledPin->write(HIGH);
-			vTaskDelay(pdMS_TO_TICKS(100));
-			ledPin->write(LOW);
-			vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1000));
+			/* Unfortunately this takes FOREVER to send a block of data...2-3mS AND it blocks
+			 * all the other tasks from running!! */
+			portENTER_CRITICAL();
+			error = sd->write(reinterpret_cast<uint8_t*>(&logData), logDataSize, bytesWritten);
+			portEXIT_CRITICAL();
 		}
 		
 		/* Error condition visual confirm fast led blink*/
-		else
-		{
-			ledPin->write(HIGH);
-			vTaskDelay(pdMS_TO_TICKS(150));
-			ledPin->write(LOW);
-			vTaskDelay(pdMS_TO_TICKS(150));
-			vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
-		}
+//		else
+//		{
+//			ledPin->write(HIGH);
+//			vTaskDelay(pdMS_TO_TICKS(150));
+//			ledPin->write(LOW);
+//			vTaskDelay(pdMS_TO_TICKS(150));
+//			vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
+//		}
+		
+		/* Send the status of SD read/writes out to another task that solely handles 
+		 * blinking leds for the user. */
+		
 	}
 }

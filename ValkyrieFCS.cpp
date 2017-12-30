@@ -12,6 +12,7 @@
 #include "sdcard.hpp"
 #include "ahrs.hpp"
 #include "console.hpp"
+#include "led.hpp"
 
 using namespace ThorDef::GPIO;
 using namespace ThorDef::SPI;
@@ -28,7 +29,8 @@ int main(void)
 	
 	xTaskCreate(sdCardTask, "sdTask", 2000, NULL, 1, NULL);
 	xTaskCreate(ahrsTask, "ahrsTask", 2000, NULL, 1, NULL);
-	xTaskCreate(consoleTask, "printer", 2000, NULL, 2, NULL);
+	xTaskCreate(consoleTask, "cmdListener", 2000, NULL, 1, NULL);
+	xTaskCreate(ledStatus, "ledResponse", 2000, NULL, 1, NULL);
 	
 	vTaskStartScheduler();
 	

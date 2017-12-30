@@ -1,14 +1,13 @@
 #pragma once
-#ifndef CONSOLE_HPP_
-#define CONSOLE_HPP_
-
+#ifndef LED_HPP_
+#define LED_HPP_
 /* C/C++ Includes */
 #include <stdint.h>
 #include <stdlib.h>
 
 /* Thor Includes */
 #include "include/thor.h"
-#include "include/uart.h"
+#include "include/gpio.h"
 #include "include/exti.h"
 #include "include/interrupt.h"
 
@@ -19,11 +18,11 @@
 /* FreeRTOS Includes */
 #include "FreeRTOS.h"
 #include "task.h"
-#include "semphr.h"
+#include "queue.h"
 
 #include "dataTypes.hpp"
 #include "messaging.hpp"
 
-extern void consoleTask(void* argument);
+extern void ledStatus(void* argument);
 
-#endif /* CONSOLE_HPP_ */
+#endif

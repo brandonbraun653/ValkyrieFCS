@@ -18,9 +18,12 @@
 /* FreeRTOS Includes */
 #include "FreeRTOS.h"
 #include "task.h"
+#include "queue.h"
 
 /* AHRS Includes */
 #include "stm32f7_lsm9ds0.h"
+#include "dataTypes.hpp"
+#include "messaging.hpp"
 
 
 extern void ahrsTask(void* argument);

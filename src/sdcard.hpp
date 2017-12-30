@@ -21,6 +21,11 @@
 /* FreeRTOS Includes */
 #include "FreeRTOS.h"
 #include "task.h"
+#include "queue.h"
+
+#include "dataTypes.hpp"
+#include "messaging.hpp"
+
 
 extern void sdCardTask(void* argument);
 
