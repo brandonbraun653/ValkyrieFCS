@@ -2,6 +2,7 @@
 
 
 
+
 void consoleTask(void* argument)
 {
 	/* Initialize serial */
@@ -16,38 +17,37 @@ void consoleTask(void* argument)
 	uint8_t pkt[ThorDef::UART::UART_BUFFER_SIZE];
 	memset(pkt, 0, ThorDef::UART::UART_BUFFER_SIZE);
 	
-	/* Inform the Interrupt Task Manager that we want to be notified 
-	 * of incoming RX packets */
+	/* Inform the Interrupt Task Manager that we want to be notified of incoming RX packets */
 	SemaphoreHandle_t rxPktRcvd = xSemaphoreCreateCounting(ThorDef::UART::UART_PACKET_QUEUE_SIZE, 0);
 	EXTI0_TaskMGR->logEventConsumer(Interrupt::SRC_UART, 4, &rxPktRcvd);
 	
-	bool parsePacket = false;
+	
 	CMDData_t cmdPkt;
 	
 	TickType_t lastTimeWoken = xTaskGetTickCount();
 	for (;;)
 	{
-		/* Look for a new incoming command packet! */
-		if (xSemaphoreTake(rxPktRcvd, 0) == pdPASS)
-		{
-			if (uart->availablePackets())
-			{
-				memset(pkt, 0, ThorDef::UART::UART_BUFFER_SIZE);
-				size_t pktSize = uart->nextPacketSize();
-
-				uart->readPacket(pkt, ThorDef::UART::UART_BUFFER_SIZE);
+		//Will need to handling outgoing log messages too...or heck, stream data to Matlab
+		
+		/* Only wake up the thread when new data has arrived over the serial port */
+		xSemaphoreTake(rxPktRcvd, portMAX_DELAY);
 			
-				/* We should look at the preamble to decide where to send it. */
+		if (uart->availablePackets())
+		{
+			memset(pkt, 0, ThorDef::UART::UART_BUFFER_SIZE);
+			size_t pktSize = uart->nextPacketSize();
 
-				cmdPkt.priority = 0;
-				cmdPkt.rawPacket = pkt;
-				cmdPkt.rawPacketSize = pktSize;
-				cmdPkt.rxTimeStamp = 0.0;
+			uart->readPacket(pkt, ThorDef::UART::UART_BUFFER_SIZE);
+			
+			/* We should look at the preamble to decide where to send it. */
 
-				xQueueSendToBack(qCommandBuffer, &cmdPkt, 0);
-			}
+			cmdPkt.priority = 0;
+			cmdPkt.rawPacket = pkt;
+			cmdPkt.rawPacketSize = pktSize;
+			cmdPkt.rxTimeStamp = 0.0;
+
+			//xQueueSendToBack(qCommandBuffer, &cmdPkt, 0);
 		}
 		
-		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(500));	
 	}
 }
