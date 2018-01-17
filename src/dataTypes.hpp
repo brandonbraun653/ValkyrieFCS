@@ -5,8 +5,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "../../include/thor.h"
-#include "../../include/thor_definitions.h"
+#include "include/thor.h"
+#include "include/thor_definitions.h"
 
 struct IMUData_t
 {
@@ -16,7 +16,6 @@ struct IMUData_t
 	float mSTime;		/* Time stamp in mS */
 };
 
-
 struct CMDData_t
 {
 	uint8_t* rawPacket;
@@ -24,5 +23,27 @@ struct CMDData_t
 	float rxTimeStamp;
 	uint8_t priority;
 };
+
+/*------------------------------
+* Radio
+*-----------------------------*/
+struct Radio_Command
+{
+	//cmd details here
+};
+
+struct Radio_Control
+{
+	float THROTTLE = 0.0;
+	float ROLL = 0.0;
+	float PITCH = 0.0;
+	float YAW = 0.0;
+};
+
+struct Radio_Request
+{
+	//request details here
+};
+
 
 #endif 

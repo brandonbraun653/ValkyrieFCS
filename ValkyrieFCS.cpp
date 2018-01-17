@@ -9,6 +9,7 @@
 
 
 /* Thread Task Includes */
+#include "radio.hpp"
 #include "sdcard.hpp"
 #include "ahrs.hpp"
 #include "console.hpp"
@@ -30,7 +31,8 @@ int main(void)
 	xTaskCreate(sdCardTask, "sdTask", 2000, NULL, 1, NULL);
 	xTaskCreate(ahrsTask, "ahrsTask", 2000, NULL, 1, NULL);
 	xTaskCreate(consoleTask, "cmdListener", 2000, NULL, 1, NULL);
-	xTaskCreate(ledStatus, "ledResponse", 2000, NULL, 1, NULL);
+	xTaskCreate(ledStatus, "ledResponse", 512, NULL, 1, NULL);
+	xTaskCreate(radioTask, "radio", 1000, NULL, 2, NULL);
 	
 	vTaskStartScheduler();
 	

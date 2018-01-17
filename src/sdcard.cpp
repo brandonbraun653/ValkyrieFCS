@@ -46,6 +46,9 @@ void sdCardTask(void* argument)
 			portEXIT_CRITICAL();
 		}
 		
+		/* Let others run */
+		taskYIELD();
+		
 		/* Error condition visual confirm fast led blink*/
 //		else
 //		{

@@ -16,17 +16,9 @@ void ledStatus(void* argument)
 	TickType_t lastTimeWoken = xTaskGetTickCount();
 	for (;;)
 	{
-		/* Block this task until the queue has a new command for us. */
-		xQueueReceive(qCommandBuffer, &pkt, portMAX_DELAY);
-		
-		if (pkt.rawPacket[0] == '2')
-			ledPin->toggle();
-		
-		if (pkt.rawPacket[0] == '1')
-			ledPin->write(HIGH);
-		
-		if (pkt.rawPacket[0] == '0')
-			ledPin->write(LOW);
-		
+		ledPin->write(HIGH);
+		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(150));
+		ledPin->write(LOW);
+		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(1000));
 	}
 }
