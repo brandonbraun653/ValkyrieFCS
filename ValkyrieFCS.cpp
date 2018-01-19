@@ -15,6 +15,8 @@
 #include "console.hpp"
 #include "led.hpp"
 
+#include "fcsConfig.hpp"
+
 using namespace ThorDef::GPIO;
 using namespace ThorDef::SPI;
 
@@ -28,11 +30,11 @@ int main(void)
 	//InitializeInstrumentingProfiler();
 	#endif 
 	
-	xTaskCreate(sdCardTask, "sdTask", 2000, NULL, 1, NULL);
-	xTaskCreate(ahrsTask, "ahrsTask", 2000, NULL, 1, NULL);
-	xTaskCreate(consoleTask, "cmdListener", 2000, NULL, 1, NULL);
-	xTaskCreate(ledStatus, "ledResponse", 512, NULL, 1, NULL);
-	xTaskCreate(radioTask, "radio", 1000, NULL, 2, NULL);
+	xTaskCreate(sdCardTask,		"sdTask",		2000,	NULL,	SDCARD_LOGGING_PRIORITY,	NULL);
+	xTaskCreate(ahrsTask,		"ahrsTask",		2000,	NULL,	AHRS_UPDATE_PRIORITY,		NULL);
+	xTaskCreate(consoleTask,	"cmdListener",	2000,	NULL,	CONSOLE_LOGGING_PRIORITY,	NULL);
+	xTaskCreate(ledStatus,		"ledResponse",	512,	NULL,	STATUS_LEDS_PRIORITY,		NULL);
+	xTaskCreate(radioTask,		"radio",		1000,	NULL,	RADIO_UPDATE_PRIORITY,		NULL);
 	
 	vTaskStartScheduler();
 	
