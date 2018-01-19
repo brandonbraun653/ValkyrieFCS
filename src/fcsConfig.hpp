@@ -20,7 +20,7 @@
  *----------------------------*/
 #define STATUS_LED_UPDATE_FREQ_HZ	5		
 #define CONSOLE_UPDATE_FREQ_HZ		5		
-#define MOTOR_UPDATE_FREQ_HZ		50
+#define MOTOR_UPDATE_FREQ_HZ		100
 #define SENSOR_UPDATE_FREQ_HZ		250		
 #define AHRS_UPDATE_FREQ_HZ			750		
 

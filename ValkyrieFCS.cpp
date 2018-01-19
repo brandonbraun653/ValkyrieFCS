@@ -12,6 +12,7 @@
 #include "radio.hpp"
 #include "sdcard.hpp"
 #include "ahrs.hpp"
+#include "motors.hpp"
 #include "console.hpp"
 #include "led.hpp"
 
@@ -35,6 +36,7 @@ int main(void)
 	xTaskCreate(consoleTask,	"cmdListener",	2000,	NULL,	CONSOLE_LOGGING_PRIORITY,	NULL);
 	xTaskCreate(ledStatus,		"ledResponse",	512,	NULL,	STATUS_LEDS_PRIORITY,		NULL);
 	xTaskCreate(radioTask,		"radio",		1000,	NULL,	RADIO_UPDATE_PRIORITY,		NULL);
+	xTaskCreate(motorTask,		"motor",		1000,	NULL,	MOTOR_UPDATE_PRIORITY,		NULL);
 	
 	vTaskStartScheduler();
 	
