@@ -15,6 +15,7 @@
 #include "motors.hpp"
 #include "console.hpp"
 #include "led.hpp"
+#include "bluetooth.hpp"
 
 #include "fcsConfig.hpp"
 
@@ -23,8 +24,11 @@ using namespace ThorDef::SPI;
 
 int main(void)
 {
+	//portENTER_CRITICAL();
 	HAL_Init();
 	ThorInit();
+	
+	//portEXIT_CRITICAL();
 
 	#ifdef DEBUG
 	InitializeSamplingProfiler();
@@ -33,10 +37,11 @@ int main(void)
 	
 	xTaskCreate(sdCardTask,		"sdTask",		2000,	NULL,	SDCARD_LOGGING_PRIORITY,	NULL);
 	xTaskCreate(ahrsTask,		"ahrsTask",		2000,	NULL,	AHRS_UPDATE_PRIORITY,		NULL);
-	xTaskCreate(consoleTask,	"cmdListener",	2000,	NULL,	CONSOLE_LOGGING_PRIORITY,	NULL);
-	xTaskCreate(ledStatus,		"ledResponse",	512,	NULL,	STATUS_LEDS_PRIORITY,		NULL);
+	//xTaskCreate(consoleTask,	"cmdListener",	2000,	NULL,	CONSOLE_LOGGING_PRIORITY,	NULL);
+	xTaskCreate(ledStatus,		"ledStatus",	512,	NULL,	STATUS_LEDS_PRIORITY,		NULL);
 	xTaskCreate(radioTask,		"radio",		1000,	NULL,	RADIO_UPDATE_PRIORITY,		NULL);
 	xTaskCreate(motorTask,		"motor",		1000,	NULL,	MOTOR_UPDATE_PRIORITY,		NULL);
+	xTaskCreate(bluetoothTask,	"bluetooth",	1000,	NULL,	BLUETOOTH_PRIORITY,			NULL);
 	
 	vTaskStartScheduler();
 	

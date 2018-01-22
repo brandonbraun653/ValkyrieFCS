@@ -14,9 +14,9 @@ void ahrsTask(void* argument)
 	sensor_settings.odr.gyro = G_ODR_190_BW_125;
 	
 	/* Object allocation */
- 	GPIOClass_sPtr lsm_ss_xm = boost::make_shared<GPIOClass>(GPIOA, PIN_9, ULTRA_SPD, NOALTERNATE);		/* Accel/Mag Slave Select */
- 	GPIOClass_sPtr lsm_ss_g = boost::make_shared<GPIOClass>(GPIOA, PIN_8, ULTRA_SPD, NOALTERNATE);		/* Gyro Slave Select */
-	SPIClass_sPtr lsm_spi = spi3;
+ 	GPIOClass_sPtr lsm_ss_xm = boost::make_shared<GPIOClass>(GPIOC, PIN_4, ULTRA_SPD, NOALTERNATE);		/* Accel/Mag Slave Select */
+ 	GPIOClass_sPtr lsm_ss_g = boost::make_shared<GPIOClass>(GPIOC, PIN_3, ULTRA_SPD, NOALTERNATE);		/* Gyro Slave Select */
+	SPIClass_sPtr lsm_spi = spi2;
 	
  	LSM9DS0 sensor(lsm_spi, lsm_ss_xm, lsm_ss_g, sensor_settings);
 	

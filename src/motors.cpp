@@ -60,9 +60,9 @@ void motorTask(void* argument)
 		if (xQueueReceive(qRadio_Control, &latestMotorCommand, 0) == pdPASS)
 		{
 			motorCMD.motor1 = (uint16_t)(latestMotorCommand.THROTTLE * 300.0);
-			motorCMD.motor2 = motorCMD.motor1;
-			motorCMD.motor3 = motorCMD.motor1;
-			motorCMD.motor4 = motorCMD.motor1;
+			motorCMD.motor2 = (uint16_t)(latestMotorCommand.ROLL * 300.0);
+			motorCMD.motor3 = (uint16_t)(latestMotorCommand.PITCH * 300.0);
+			motorCMD.motor4 = (uint16_t)(latestMotorCommand.YAW * 300.0);
 		}
 		
 		motorController.updateSetPoint(motorCMD.motor1, motorCMD.motor2, motorCMD.motor3, motorCMD.motor4);

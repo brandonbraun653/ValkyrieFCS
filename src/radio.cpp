@@ -4,9 +4,13 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
+
 /* Thor Includes */
 #include "include/thor.h"
 #include "include/uart.h"
+#include "include/gpio.h"
 
 /* ValkyrieRTX Includes */
 #include "rtx.hpp"
@@ -19,6 +23,9 @@
 /* Project Includes */
 #include "dataTypes.hpp"
 
+
+using namespace ThorDef::GPIO;
+
 #define RADIO_QUEUE_SIZE 10
 QueueHandle_t qRadio_Command = xQueueCreate(RADIO_QUEUE_SIZE, sizeof(Radio_Command));
 QueueHandle_t qRadio_Control = xQueueCreate(RADIO_QUEUE_SIZE, sizeof(Radio_Control));
@@ -26,17 +33,27 @@ QueueHandle_t qRadio_Request = xQueueCreate(RADIO_QUEUE_SIZE, sizeof(Radio_Reque
 
 void radioTask(void* argument)
 {
+	/* Ensure XBEE is not in reset state */
+	GPIOClass_sPtr xbeePIN_RST = boost::make_shared<GPIOClass>(GPIOA, PIN_3, ULTRA_SPD, NOALTERNATE);
+	GPIOClass_sPtr xbeePIN_RSSI = boost::make_shared<GPIOClass>(GPIOA, PIN_2, ULTRA_SPD, NOALTERNATE);
+	
+	
+	xbeePIN_RST->mode(OUTPUT_PP);
+	xbeePIN_RST->write(HIGH);
+	
+	xbeePIN_RSSI->mode(INPUT);
+	
 	/*------------------------------
 	* Initialize Serial Comms 
 	*-----------------------------*/
-	UARTClass_sPtr uart = uart5;
+	UARTClass_sPtr uart = uart4;
 	uart->begin(115200);
 	uart->setTxModeDMA();
 	uart->setRxModeDMA();
 	
 	/* Make sure we are notified of incoming RX events */
 	SemaphoreHandle_t rxPktRcvd = xSemaphoreCreateCounting(ThorDef::UART::UART_PACKET_QUEUE_SIZE, 0);
-	EXTI0_TaskMGR->logEventConsumer(Interrupt::SRC_UART, 5, &rxPktRcvd);
+	EXTI0_TaskMGR->logEventConsumer(Interrupt::SRC_UART, 4, &rxPktRcvd);
 	
 	/*------------------------------
 	* Initialize local buffers  
@@ -47,22 +64,22 @@ void radioTask(void* argument)
 	packetData pkt;										/* Formatted packet that is RX'd */
 	memset(&pkt, 0, sizeof(pkt));
 	
-	
+	TickType_t lastTimeWoken = xTaskGetTickCount();
 	for(;;)	
 	{		
 		xSemaphoreTake(rxPktRcvd, portMAX_DELAY);	/* Wake up ONLY when there is new XBEE data */
 		
 		if (uart->availablePackets())
 		{
-			memset(rawPkt, 0, sizeof(rawPkt));					/* Reset the buffer to 0 */
-			uart->readPacket(rawPkt, uart->nextPacketSize());	/* Read in all the data */
-			memcpy(&pkt, rawPkt, sizeof(pkt));					/* Copy into the packet struct */
+			memset(rawPkt, 0, sizeof(rawPkt)); /* Reset the buffer to 0 */
+			uart->readPacket(rawPkt, uart->nextPacketSize()); /* Read in all the data */
+			memcpy(&pkt, rawPkt, sizeof(pkt)); /* Copy into the packet struct */
 			
 			//Note: Probably should start handling multiple packet types rather than a giant all
 			//encompassing one...Discretization is my friend here. I have a variable length async
 			//uart library, may as well use it. 
 			
-			if (rawPkt[0] == PACKET_CONTROLS)
+			if(rawPkt[0] == PACKET_CONTROLS)
 			{
 				Radio_Control temp;
 				temp.THROTTLE	= pkt.THROTTLE;
@@ -76,7 +93,7 @@ void radioTask(void* argument)
 				xQueueSendToBack(qRadio_Control, &temp, 0);
 			}
 			
-			else if (rawPkt[0] == PACKET_COMMAND)
+			else if(rawPkt[0] == PACKET_COMMAND)
 			{
 				//This one does a lot...need to figure out what kind of commands will be supported.
 				
@@ -89,7 +106,7 @@ void radioTask(void* argument)
 				 * */
 			}
 			
-			else if (rawPkt[0] == PACKET_REQUEST)
+			else if(rawPkt[0] == PACKET_REQUEST)
 			{
 				//Asks the main thread for some data...main thread should handle this asynchronously rather
 				//than assigning a specific task to it. Very very low priority.
@@ -99,6 +116,12 @@ void radioTask(void* argument)
 				//log some error to console
 			}
 			
+		}
+		
+		else
+		{
+			//uart->write("No data received!");
+			//vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(50));
 		}
 	}
 }

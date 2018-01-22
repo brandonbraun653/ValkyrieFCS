@@ -8,9 +8,9 @@ using namespace ThorDef::GPIO;
 void sdCardTask(void* argument)
 {
 	/* Assign the object pointers */
-	SPIClass_sPtr sd_spi = spi2;
+	SPIClass_sPtr sd_spi = spi3;
 	SDCard_sPtr sd = boost::make_shared<SDCard>(sd_spi);
-	GPIOClass_sPtr SD_SSPin = boost::make_shared<GPIOClass>(GPIOB, PIN_12, ULTRA_SPD, NOALTERNATE); /* SD Slave Select */
+	GPIOClass_sPtr SD_SSPin = boost::make_shared<GPIOClass>(GPIOA, PIN_15, ULTRA_SPD, NOALTERNATE); /* SD Slave Select */
 	
 	
 	/* Set up SPI */
@@ -28,23 +28,27 @@ void sdCardTask(void* argument)
 	size_t logDataSize = sizeof(logData);
 	uint32_t bytesWritten = 0, dummyWrite = 0;
 	
+	const char* testMessage = "Hello from the Valkyrie FCS board!!!";
 	
-	error = sd->fopen("dataFile", FA_CREATE_ALWAYS | FA_WRITE);
+	//error = sd->fopen("dataFile", FA_CREATE_ALWAYS | FA_WRITE);
+	error = sd->fopen("FCSMessage.txt", FA_CREATE_ALWAYS | FA_WRITE);
+	error = sd->write((uint8_t*)testMessage, logDataSize, bytesWritten);
+	error = sd->fclose();
 	
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 	for(;;)	
 	{
-		if (error == FR_OK)
-		{		
-			/* Indefinitely block the task if no data is ready...I think this is right? */
-			xQueueReceive(qIMUFlightData, &logData, portMAX_DELAY);
-			
-			/* Unfortunately this takes FOREVER to send a block of data...2-3mS AND it blocks
-			 * all the other tasks from running!! */
-			portENTER_CRITICAL();
-			error = sd->write(reinterpret_cast<uint8_t*>(&logData), logDataSize, bytesWritten);
-			portEXIT_CRITICAL();
-		}
+//		if (error == FR_OK)
+//		{		
+//			/* Indefinitely block the task if no data is ready...I think this is right? */
+//			xQueueReceive(qIMUFlightData, &logData, portMAX_DELAY);
+//			
+//			/* Unfortunately this takes FOREVER to send a block of data...2-3mS AND it blocks
+//			 * all the other tasks from running!! */
+//			portENTER_CRITICAL();
+//			error = sd->write(reinterpret_cast<uint8_t*>(&logData), logDataSize, bytesWritten);
+//			portEXIT_CRITICAL();
+//		}
 		
 		/* Let others run */
 		taskYIELD();

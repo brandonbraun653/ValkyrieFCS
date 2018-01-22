@@ -1,4 +1,3 @@
-
 /* C/C++ Includes */
 #include <stdint.h>
 #include <stdlib.h>
@@ -25,10 +24,12 @@ const int updateRate_mS = (1.0 / CONSOLE_UPDATE_FREQ_HZ) * 1000.0;
 void consoleTask(void* argument)
 {
 	/* Initialize serial */
-	UARTClass_sPtr uart = uart4;
- 	uart->begin(115200);
- 	uart->setTxModeDMA();
- 	uart->setRxModeDMA();
+	//UARTClass_sPtr uart = uart5;
+ 	//uart->begin(115200);
+ 	//uart->setTxModeDMA();
+ 	//uart->setRxModeDMA();
+	
+	//The console is connected to USART1 through the CP2102 bridge...need USART Lib...*sigh...
 	
 	
 	TickType_t lastTimeWoken = xTaskGetTickCount();
@@ -39,18 +40,3 @@ void consoleTask(void* argument)
 		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(updateRate_mS));
 	}
 }
-
-//Block until we get some new data 
-//		Radio_Control controlData;
-//		std::string throttle, roll, pitch, yaw, msg;
-//		std::string t("Throttle: "), r("Roll: "), p("Pitch: "), y("Yaw: ");
-// 		xQueueReceive(qRadio_Control, &controlData, portMAX_DELAY);
-// 		
-// 		throttle = float2String(controlData.THROTTLE);
-// 		roll = float2String(controlData.ROLL);
-// 		pitch = float2String(controlData.PITCH);
-// 		yaw = float2String(controlData.YAW);
-// 		
-// 		msg = t + throttle + ' ' + r + roll + ' ' + p + pitch + ' ' + y + yaw + '\n';
-// 		
-// 		uart->write(msg);

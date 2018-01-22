@@ -14,6 +14,7 @@
 #define STATUS_LEDS_PRIORITY		1
 #define SDCARD_LOGGING_PRIORITY		1
 #define CONSOLE_LOGGING_PRIORITY	1
+#define BLUETOOTH_PRIORITY			1
 
 /*-----------------------------
  * Task Update Frequencies
