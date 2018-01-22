@@ -3,56 +3,45 @@
 
 void ahrsTask(void* argument)
 {
-	/* Fill in the Accelerometer and Mag details */
-	LSM9DS0_Settings sensor_settings;
-	sensor_settings.scale.accel = A_SCALE_8G;
-	sensor_settings.scale.mag = M_SCALE_2GS;
-	sensor_settings.scale.gyro = G_SCALE_2000DPS;
-				   
-	sensor_settings.odr.accel = A_ODR_100;
-	sensor_settings.odr.mag = M_ODR_100;
-	sensor_settings.odr.gyro = G_ODR_190_BW_125;
-	
 	/* Object allocation */
- 	GPIOClass_sPtr lsm_ss_xm = boost::make_shared<GPIOClass>(GPIOC, PIN_4, ULTRA_SPD, NOALTERNATE);		/* Accel/Mag Slave Select */
- 	GPIOClass_sPtr lsm_ss_g = boost::make_shared<GPIOClass>(GPIOC, PIN_3, ULTRA_SPD, NOALTERNATE);		/* Gyro Slave Select */
+ 	GPIOClass_sPtr lsm_ss_xg = boost::make_shared<GPIOClass>(GPIOC, PIN_4, ULTRA_SPD, NOALTERNATE);
+ 	GPIOClass_sPtr lsm_ss_m = boost::make_shared<GPIOClass>(GPIOC, PIN_3, ULTRA_SPD, NOALTERNATE);
 	SPIClass_sPtr lsm_spi = spi2;
 	
- 	LSM9DS0 sensor(lsm_spi, lsm_ss_xm, lsm_ss_g, sensor_settings);
+	LSM9DS1 imu(lsm_spi, lsm_ss_xg, lsm_ss_m);
 	
-	/* Initialization: 
-	 * The sensor class handles GPIO and SPI init. SPI is defaulted to blocking 
-	 * mode, but this is ok due to how incredibly short it takes to read out data. ~100uS*/
- 	sensor.initialize();
+	imu.settings.device.commInterface = IMU_MODE_SPI;
+	
+	imu.begin();
+	imu.calibrate(true);
+	imu.calibrateMag(true);
+	
+	uint8_t accelAvailable = imu.accelAvailable();
 	
 	
-	IMUData_t sensorData;
-	
+	IMUData_t data;
 	
 	TickType_t lastTimeWoken = xTaskGetTickCount();
 	for (;;)
 	{
-		portENTER_CRITICAL();
-		sensor.readAll();
-		sensor.calcAll();
-		portEXIT_CRITICAL();
+		imu.readGyro();
+		imu.readAccel();
+		imu.readMag();
 		
-		sensorData.ax = sensor.data.accel.x;
-		sensorData.ay = sensor.data.accel.y;
-		sensorData.az = sensor.data.accel.z;
+		data.ax = imu.calcAccel(imu.ax);
+		data.ay = imu.calcAccel(imu.ay);
+		data.az = imu.calcAccel(imu.az);
 		
-		sensorData.gx = sensor.data.gyro.x;
-		sensorData.gy = sensor.data.gyro.y;
-		sensorData.gz = sensor.data.gyro.z;
+		data.gx = imu.calcGyro(imu.gx);
+		data.gy = imu.calcGyro(imu.gy);
+		data.gz = imu.calcGyro(imu.gz);
 		
-		sensorData.mx = sensor.data.mag.x;
-		sensorData.my = sensor.data.mag.y;
-		sensorData.mz = sensor.data.mag.z;
-		
-		sensorData.mSTime = 0.0;
+		data.mx = imu.calcMag(imu.mx);
+		data.my = imu.calcMag(imu.my);
+		data.mz = imu.calcMag(imu.mz);
 		
 		/* This should trigger a write to the SD flight logger */
-		xQueueSendToBack(qIMUFlightData, &sensorData, 0);
+		//xQueueSendToBack(qIMUFlightData, &sensorData, 0);
 		
 		/* Constant frequency sampling of 100 Hz */
 		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(10));

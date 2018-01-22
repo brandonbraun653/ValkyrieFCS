@@ -21,7 +21,7 @@
 #include "queue.h"
 
 /* AHRS Includes */
-#include "stm32f7_lsm9ds0.h"
+#include "LSM9DS1.hpp"
 #include "dataTypes.hpp"
 #include "messaging.hpp"
 
