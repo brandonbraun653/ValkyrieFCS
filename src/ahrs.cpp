@@ -12,9 +12,9 @@ void ahrsTask(void* argument)
 	
 	imu.settings.device.commInterface = IMU_MODE_SPI;
 	
-	imu.begin();
+	uint16_t validIMU = imu.begin();
 	imu.calibrate(true);
-	imu.calibrateMag(true);
+	//imu.calibrateMag(true);
 	
 	uint8_t accelAvailable = imu.accelAvailable();
 	
@@ -24,21 +24,27 @@ void ahrsTask(void* argument)
 	TickType_t lastTimeWoken = xTaskGetTickCount();
 	for (;;)
 	{
-		imu.readGyro();
-		imu.readAccel();
-		imu.readMag();
+		if (validIMU)
+		{
+			
+			/* MAKE NOTE IN DATA SHEET THAT AUTO ADDR INCR DOES NOT WORK */
+			imu.readGyro();
+			imu.readAccel();
+			imu.readMag();
 		
-		data.ax = imu.calcAccel(imu.ax);
-		data.ay = imu.calcAccel(imu.ay);
-		data.az = imu.calcAccel(imu.az);
+			data.ax = imu.calcAccel(imu.ax);
+			data.ay = imu.calcAccel(imu.ay);
+			data.az = imu.calcAccel(imu.az);
 		
-		data.gx = imu.calcGyro(imu.gx);
-		data.gy = imu.calcGyro(imu.gy);
-		data.gz = imu.calcGyro(imu.gz);
+			data.gx = imu.calcGyro(imu.gx);
+			data.gy = imu.calcGyro(imu.gy);
+			data.gz = imu.calcGyro(imu.gz);
 		
-		data.mx = imu.calcMag(imu.mx);
-		data.my = imu.calcMag(imu.my);
-		data.mz = imu.calcMag(imu.mz);
+			data.mx = imu.calcMag(imu.mx);
+			data.my = imu.calcMag(imu.my);
+			data.mz = imu.calcMag(imu.mz);	
+		}
+		
 		
 		/* This should trigger a write to the SD flight logger */
 		//xQueueSendToBack(qIMUFlightData, &sensorData, 0);
