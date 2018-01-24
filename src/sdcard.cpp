@@ -1,9 +1,33 @@
+/* C/C++ Includes */
+#include <stdint.h>
+#include <stdlib.h>
+
+/* Thor Includes */
+#include "include/thor.h"
+#include "include/spi.h"
+#include "include/gpio.h"
+
+/* External Library Includes */
+#include "sd.h"
+
+/* Boost Includes */
+#include <boost/smart_ptr.hpp>
+#include <boost/make_shared.hpp>
+
+/* FreeRTOS Includes */
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+
+/* Project Includes */
+#include "dataTypes.hpp"
+#include "threading.hpp"
 #include "sdcard.hpp"
 
 using namespace ThorDef::SPI;
 using namespace ThorDef::GPIO;
 
-
+uint32_t taskNotification = 0;
 
 void sdCardTask(void* argument)
 {
@@ -38,11 +62,19 @@ void sdCardTask(void* argument)
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 	for(;;)	
 	{
+		/* Check for some new notifications before continuing */
+		taskNotification = ulTaskNotifyTake(pdTRUE, 0);
+		
+		if (taskNotification != 0)
+		{
+			if (taskNotification == SD_CARD_SHUTDOWN)
+				break;
+			
+			//do other stuff I guess
+		}
+		
 //		if (error == FR_OK)
 //		{		
-//			/* Indefinitely block the task if no data is ready...I think this is right? */
-//			xQueueReceive(qIMUFlightData, &logData, portMAX_DELAY);
-//			
 //			/* Unfortunately this takes FOREVER to send a block of data...2-3mS AND it blocks
 //			 * all the other tasks from running!! */
 //			portENTER_CRITICAL();
@@ -56,6 +88,9 @@ void sdCardTask(void* argument)
 		/* Error condition visual confirm fast led blink*/
 //		else
 //		{
+//			taskNotification = SD_CARD_SHUTDOWN;
+		
+		//DO error message things 
 //			ledPin->write(HIGH);
 //			vTaskDelay(pdMS_TO_TICKS(150));
 //			ledPin->write(LOW);
@@ -67,4 +102,16 @@ void sdCardTask(void* argument)
 		 * blinking leds for the user. */
 		
 	}
+	
+	
+	if (taskNotification == SD_CARD_SHUTDOWN)
+	{
+		sd->fclose();
+		sd->deInitialize();
+	}
+	
+	
+	
+	/* Ensure a clean deletion of the task if we exit */
+	vTaskDelete(NULL);
 }

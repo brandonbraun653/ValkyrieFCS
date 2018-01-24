@@ -9,39 +9,42 @@
 
 
 /* Thread Task Includes */
+#include "fcsConfig.hpp"
 #include "radio.hpp"
 #include "sdcard.hpp"
+#include "sensor.hpp"
 #include "ahrs.hpp"
 #include "motors.hpp"
 #include "console.hpp"
 #include "led.hpp"
 #include "bluetooth.hpp"
+#include "threading.hpp"
 
-#include "fcsConfig.hpp"
+
 
 using namespace ThorDef::GPIO;
 using namespace ThorDef::SPI;
 
 int main(void)
 {
-	//portENTER_CRITICAL();
 	HAL_Init();
 	ThorInit();
 	
-	//portEXIT_CRITICAL();
 
 	#ifdef DEBUG
 	InitializeSamplingProfiler();
 	//InitializeInstrumentingProfiler();
 	#endif 
 	
-	xTaskCreate(sdCardTask,		"sdTask",		2000,	NULL,	SDCARD_LOGGING_PRIORITY,	NULL);
-	xTaskCreate(ahrsTask,		"ahrsTask",		2000,	NULL,	AHRS_UPDATE_PRIORITY,		NULL);
-	//xTaskCreate(consoleTask,	"cmdListener",	2000,	NULL,	CONSOLE_LOGGING_PRIORITY,	NULL);
-	xTaskCreate(ledStatus,		"ledStatus",	512,	NULL,	STATUS_LEDS_PRIORITY,		NULL);
-	xTaskCreate(radioTask,		"radio",		1000,	NULL,	RADIO_UPDATE_PRIORITY,		NULL);
-	xTaskCreate(motorTask,		"motor",		1000,	NULL,	MOTOR_UPDATE_PRIORITY,		NULL);
-	xTaskCreate(bluetoothTask,	"bluetooth",	1000,	NULL,	BLUETOOTH_PRIORITY,			NULL);
+	
+	xTaskCreate(sensorTask,		"sensor",		2000,	NULL,	SENSOR_UPDATE_PRIORITY,		&TaskHandle[SENSOR_TASK]);
+	xTaskCreate(sdCardTask,		"sdTask",		2000,	NULL,	SDCARD_LOGGING_PRIORITY,	&TaskHandle[SDCARD_TASK]);
+	xTaskCreate(ahrsTask,		"ahrsTask",		2000,	NULL,	AHRS_UPDATE_PRIORITY,		&TaskHandle[AHRS_TASK]);
+	xTaskCreate(consoleTask,	"cmdListener",	2000,	NULL,	CONSOLE_LOGGING_PRIORITY,	&TaskHandle[CONSOLE_TASK]);
+	xTaskCreate(ledStatus,		"ledStatus",	512,	NULL,	STATUS_LEDS_PRIORITY,		&TaskHandle[LED_STATUS_TASK]);
+	xTaskCreate(radioTask,		"radio",		1000,	NULL,	RADIO_UPDATE_PRIORITY,		&TaskHandle[RADIO_TASK]);
+	xTaskCreate(motorTask,		"motor",		1000,	NULL,	MOTOR_UPDATE_PRIORITY,		&TaskHandle[MOTOR_TASK]);
+	xTaskCreate(bluetoothTask,	"bluetooth",	1000,	NULL,	BLUETOOTH_PRIORITY,			&TaskHandle[BLUETOOTH_TASK]);
 	
 	vTaskStartScheduler();
 	

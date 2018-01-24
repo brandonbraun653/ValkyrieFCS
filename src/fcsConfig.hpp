@@ -22,8 +22,13 @@
 #define STATUS_LED_UPDATE_FREQ_HZ	5		
 #define CONSOLE_UPDATE_FREQ_HZ		5		
 #define MOTOR_UPDATE_FREQ_HZ		100
-#define SENSOR_UPDATE_FREQ_HZ		250		
-#define AHRS_UPDATE_FREQ_HZ			750		
+#define SENSOR_UPDATE_FREQ_HZ		100		
+#define AHRS_UPDATE_FREQ_HZ			5000		
 
 
-#endif
+/*-----------------------------
+ * Memory Management 
+ *----------------------------*/
+#define QUEUE_MINIMUM_SIZE			5
+
+#endif /* FCSCONFIG_HPP_ */

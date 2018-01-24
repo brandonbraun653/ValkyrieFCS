@@ -1,55 +1,100 @@
+/* C/C++ Includes */
+#include <stdint.h>
+#include <stdlib.h>
+
+/* Thor Includes */
+#include "include/thor.h"
+#include "include/spi.h"
+#include "include/gpio.h"
+
+/* Boost Includes */
+#include <boost/smart_ptr.hpp>
+#include <boost/make_shared.hpp>
+
+/* FreeRTOS Includes */
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+
+/* Project Includes */
 #include "ahrs.hpp"
+#include "fcsConfig.hpp"
+#include "dataTypes.hpp"
+#include "threading.hpp"
+
+/* Signal Processing Includes */
+#include "libraries/DspFilters/Filter.h"
+#include "libraries/DspFilters/ChebyshevI.h"
+
+const int convergenceIterations = AHRS_UPDATE_FREQ_HZ / SENSOR_UPDATE_FREQ_HZ;
+IMUData_t rawIMUData;
+
+#define AHRS_DATA_SIZE 9
+#define AHRS_SAMPLE_LENGTH 1
+
+float* imudata[AHRS_DATA_SIZE];
+
 
 
 void ahrsTask(void* argument)
 {
-	/* Object allocation */
- 	GPIOClass_sPtr lsm_ss_xg = boost::make_shared<GPIOClass>(GPIOC, PIN_4, ULTRA_SPD, NOALTERNATE);
- 	GPIOClass_sPtr lsm_ss_m = boost::make_shared<GPIOClass>(GPIOC, PIN_3, ULTRA_SPD, NOALTERNATE);
-	SPIClass_sPtr lsm_spi = spi2;
+	/* Initialize the data buffer for signal processing */
+	for (int i = 0; i < AHRS_DATA_SIZE; i++)
+		imudata[i] = new float(AHRS_SAMPLE_LENGTH);
 	
-	LSM9DS1 imu(lsm_spi, lsm_ss_xg, lsm_ss_m);
+//	Dsp::Filter* lpf = new Dsp::SmoothedFilterDesign
+//		<Dsp::Butterworth::Design::LowPass<4>, AHRS_DATA_SIZE, Dsp::DirectFormII> (1);
 	
-	imu.settings.device.commInterface = IMU_MODE_SPI;
+	Dsp::SimpleFilter <Dsp::ChebyshevI::BandStop <3>, 2> f;
+	f.setup(
+		3,		// order
+		100,	// sample rate
+	    25,	// center frequency
+		15,	// band width
+		1);     // ripple dB
+	   
 	
-	uint16_t validIMU = imu.begin();
-	imu.calibrate(true);
-	//imu.calibrateMag(true);
 	
-	uint8_t accelAvailable = imu.accelAvailable();
-	
-	
-	IMUData_t data;
-	
-	TickType_t lastTimeWoken = xTaskGetTickCount();
 	for (;;)
 	{
-		if (validIMU)
+		/* Indefinitely wait until new sensor data has become available */
+		xQueueReceive(qIMURawData, &rawIMUData, portMAX_DELAY);
+		
+		
+		/*----------------------------
+		 * Filtering 
+		 *---------------------------*/
+		imudata[0][0] = rawIMUData.ax;
+		imudata[1][0] = rawIMUData.ay;
+		imudata[2][0] = rawIMUData.az;
+		
+		imudata[3][0] = rawIMUData.gx;
+		imudata[4][0] = rawIMUData.gy;
+		imudata[5][0] = rawIMUData.gz;
+		
+		imudata[6][0] = rawIMUData.mx;
+		imudata[7][0] = rawIMUData.my;
+		imudata[8][0] = rawIMUData.mz;
+		
+		//f.process(AHRS_SAMPLE_LENGTH, imudata);
+		f.process(1, imudata);
+		
+		
+		/*----------------------------
+		 * AHRS Algorithm 
+		 *---------------------------*/
+		for(int i = 0 ; i < convergenceIterations ; i++)
 		{
 			
-			/* MAKE NOTE IN DATA SHEET THAT AUTO ADDR INCR DOES NOT WORK */
-			imu.readGyro();
-			imu.readAccel();
-			imu.readMag();
-		
-			data.ax = imu.calcAccel(imu.ax);
-			data.ay = imu.calcAccel(imu.ay);
-			data.az = imu.calcAccel(imu.az);
-		
-			data.gx = imu.calcGyro(imu.gx);
-			data.gy = imu.calcGyro(imu.gy);
-			data.gz = imu.calcGyro(imu.gz);
-		
-			data.mx = imu.calcMag(imu.mx);
-			data.my = imu.calcMag(imu.my);
-			data.mz = imu.calcMag(imu.mz);	
+			//Do the madgwick filter here
 		}
 		
+		/*----------------------------
+		 * Update Queues and other post processing things (TODO: rename this crap)
+		 *---------------------------*/
+		//Update the SD card task with new data
+		//Update console logger??
+		//Update the motor control algorithm 
 		
-		/* This should trigger a write to the SD flight logger */
-		//xQueueSendToBack(qIMUFlightData, &sensorData, 0);
-		
-		/* Constant frequency sampling of 100 Hz */
-		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(10));
 	}
 }
