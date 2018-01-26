@@ -54,17 +54,20 @@ void sensorTask(void* argument)
 		imu.read9Dof();
 		imu.calc9Dof();
 		
-		sensorData.ax = imu.aRaw[0];	/* Acceleration in m/s^2 _not_ g's*/
+		/* Acceleration in m/s^2 _not_ g's*/
+		sensorData.ax = imu.aRaw[0];	
 		sensorData.ay = imu.aRaw[1];
 		sensorData.az = imu.aRaw[2];
 		
-		sensorData.gx = imu.gRaw[0];	/* Rotation Rate in dps */
+		/* Rotation Rate in dps */
+		sensorData.gx = imu.gRaw[0];	
 		sensorData.gy = imu.gRaw[1];
 		sensorData.gz = imu.gRaw[2];
 		
-		sensorData.mx = imu.mRaw[0];	/* Mag Field Strength in Gauss */
-		sensorData.my = imu.mRaw[1];
-		sensorData.mz = imu.mRaw[2];
+		/* Mag Field Strength in Gauss */
+		sensorData.mx = -1.0 * imu.mRaw[1];		//Align mag x with accel x
+		sensorData.my = -1.0 * imu.mRaw[0];		//Align mag y with accel y
+		sensorData.mz = -1.0 * imu.mRaw[2];		//from LSM9DS1, mag z is opposite direction of accel z
 		
 		sensorData.mSTime = 0.0; //TODO: Get the RTC working so we can add a time stamp for more accurate data logging
 		

@@ -1,3 +1,6 @@
 [submodule "libraries/thor_stm32"]
 	path = libraries/thor_stm32
 	url = git@bitbucket.org:codex653/thor_stm32.git
+[submodule "libraries/embeddedMadgwickFilter"]
+	path = libraries/embeddedMadgwickFilter
+	url = git@github.com:brandonbraun653/EmbeddedMadgwickFilter.git
