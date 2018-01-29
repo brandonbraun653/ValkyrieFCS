@@ -1,6 +1,10 @@
 #include "threading.hpp"
 
-QueueHandle_t qIMURawData = xQueueCreate(QUEUE_MINIMUM_SIZE, sizeof(IMUData_t));
+QueueHandle_t qIMU = xQueueCreate(QUEUE_MINIMUM_SIZE, sizeof(IMUData_t));
+
+QueueHandle_t qAHRS = xQueueCreate(QUEUE_MINIMUM_SIZE, sizeof(AHRSDataDeg_t));
+
+QueueHandle_t qPID = xQueueCreate(QUEUE_MINIMUM_SIZE, sizeof(PIDData_t));
 
 QueueHandle_t qCommandBuffer = xQueueCreate(QUEUE_MINIMUM_SIZE, sizeof(CMDData_t));
 

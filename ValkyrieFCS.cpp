@@ -7,7 +7,6 @@
 #include "SysprogsProfiler.h"
 #endif
 
-
 /* Thread Task Includes */
 #include "fcsConfig.hpp"
 #include "radio.hpp"
@@ -19,8 +18,7 @@
 #include "led.hpp"
 #include "bluetooth.hpp"
 #include "threading.hpp"
-
-
+#include "pid.hpp"
 
 using namespace ThorDef::GPIO;
 using namespace ThorDef::SPI;
@@ -45,6 +43,7 @@ int main(void)
 	xTaskCreate(radioTask,		"radio",		1000,	NULL,	RADIO_UPDATE_PRIORITY,		&TaskHandle[RADIO_TASK]);
 	xTaskCreate(motorTask,		"motor",		1000,	NULL,	MOTOR_UPDATE_PRIORITY,		&TaskHandle[MOTOR_TASK]);
 	xTaskCreate(bluetoothTask,	"bluetooth",	1000,	NULL,	BLUETOOTH_PRIORITY,			&TaskHandle[BLUETOOTH_TASK]);
+	xTaskCreate(pidTask,		"pid",			2000,	NULL,	PID_UPDATE_PRIORITY,		&TaskHandle[PID_TASK]);
 	
 	vTaskStartScheduler();
 	

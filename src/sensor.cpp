@@ -65,15 +65,15 @@ void sensorTask(void* argument)
 		sensorData.gz = imu.gRaw[2];
 		
 		/* Mag Field Strength in Gauss */
-		sensorData.mx = -1.0 * imu.mRaw[1];		//Align mag x with accel x
-		sensorData.my = -1.0 * imu.mRaw[0];		//Align mag y with accel y
-		sensorData.mz = -1.0 * imu.mRaw[2];		//from LSM9DS1, mag z is opposite direction of accel z
+		sensorData.mx = -1.0f * imu.mRaw[1];		//Align mag x with accel x
+		sensorData.my = -1.0f * imu.mRaw[0];		//Align mag y with accel y
+		sensorData.mz = -1.0f * imu.mRaw[2];		//from LSM9DS1, mag z is opposite direction of accel z
 		
 		sensorData.mSTime = 0.0; //TODO: Get the RTC working so we can add a time stamp for more accurate data logging
 		
 		
 		/* Send data over to the AHRS thread without waiting for confirmation of success */
-		xQueueSendToBack(qIMURawData, &sensorData, 0);
+		xQueueSendToBack(qIMU, &sensorData, 0);
 		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(updateRate_mS));
 	}
 }

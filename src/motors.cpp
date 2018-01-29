@@ -11,62 +11,69 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
+/* FreeRTOS Includes */
+#include "FreeRTOS.h"
+#include "task.h"
+#include "semphr.h"
+
 /* Project Includes */
+#include "dataTypes.hpp"
 #include "fcsConfig.hpp"
+#include "threading.hpp"
 #include "motors.hpp"
-#include "radio.hpp"	//TODO: remove this after initial testing of motors!
 
 
+#define ESC_ARM 800
+#define ESC_MIN_THROTTLE 1060
+#define ESC_MAX_THROTTLE 1860
 
-const int updateRate_mS = (1.0 / MOTOR_UPDATE_FREQ_HZ) * 1000.0;
 const uint16_t ARM_COMMAND = 0xFFFF;
 
-Radio_Control latestMotorCommand;
-SemaphoreHandle_t mc_mutex = xSemaphoreCreateMutex();
+PIDData_t pidInput;
+MotorState MotorControllerState = MOTOR_STATE_OFF;
+
 
 void motorTask(void* argument)
-{
-	GPIOClass_sPtr m1_pin = boost::make_shared<GPIOClass>(GPIOB, PIN_6, ULTRA_SPD, GPIO_AF2_TIM4);
-	GPIOClass_sPtr m2_pin = boost::make_shared<GPIOClass>(GPIOB, PIN_7, ULTRA_SPD, GPIO_AF2_TIM4);
-	GPIOClass_sPtr m3_pin = boost::make_shared<GPIOClass>(GPIOB, PIN_8, ULTRA_SPD, GPIO_AF2_TIM4);
-	GPIOClass_sPtr m4_pin = boost::make_shared<GPIOClass>(GPIOB, PIN_9, ULTRA_SPD, GPIO_AF2_TIM4);
-	
+{	
 	ESCQuad_Init initStruct;
-	initStruct.minInput = 0;
-	initStruct.maxInput = 2048;
+	initStruct.armCMD_uS = ESC_ARM;
+	initStruct.minThrottleCMD_uS = ESC_MIN_THROTTLE;
+	initStruct.maxThrottleCMD_uS = ESC_MAX_THROTTLE;
 	initStruct.outputFrequency = 55.0;
 	
-	initStruct.motor1 = m1_pin; initStruct.motor1_timer_channel = TIM_CHANNEL_1;
-	initStruct.motor2 = m2_pin; initStruct.motor2_timer_channel = TIM_CHANNEL_2;
-	initStruct.motor3 = m3_pin; initStruct.motor3_timer_channel = TIM_CHANNEL_3;
-	initStruct.motor4 = m4_pin; initStruct.motor4_timer_channel = TIM_CHANNEL_4;
+	initStruct.motor1 = boost::make_shared<GPIOClass>(GPIOB, PIN_6, ULTRA_SPD, GPIO_AF2_TIM4);
+	initStruct.motor1_timer_channel = TIM_CHANNEL_1;
+
+	initStruct.motor2 = boost::make_shared<GPIOClass>(GPIOB, PIN_7, ULTRA_SPD, GPIO_AF2_TIM4);
+	initStruct.motor2_timer_channel = TIM_CHANNEL_2;
+
+	initStruct.motor3 = boost::make_shared<GPIOClass>(GPIOB, PIN_8, ULTRA_SPD, GPIO_AF2_TIM4);
+	initStruct.motor3_timer_channel = TIM_CHANNEL_3;
+
+	initStruct.motor4 = boost::make_shared<GPIOClass>(GPIOB, PIN_9, ULTRA_SPD, GPIO_AF2_TIM4);
+	initStruct.motor4_timer_channel = TIM_CHANNEL_4;
 	
-	MotorCommands motorCMD;
-	motorCMD.motor1 = ARM_COMMAND;
-	motorCMD.motor2 = ARM_COMMAND;
-	motorCMD.motor3 = ARM_COMMAND;
-	motorCMD.motor4 = ARM_COMMAND;
+
 	
 	ESCQuad motorController;
 	motorController.initialize(initStruct);
 	
-	motorController.enable();
-	motorController.updateSetPoint(motorCMD.motor1, motorCMD.motor2, motorCMD.motor3, motorCMD.motor4);
+	
 	
 	TickType_t lastTimeWoken = xTaskGetTickCount();
-	vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(5000));
 	for (;;)
 	{
-		if (xQueueReceive(qRadio_Control, &latestMotorCommand, 0) == pdPASS)
+		/* Block indefinitely until a new PID command has been issued */
+		xQueueReceive(qPID, &pidInput, portMAX_DELAY);
+
+		if (MotorControllerState == MOTOR_STATE_ARM)
 		{
-			motorCMD.motor1 = (uint16_t)(latestMotorCommand.THROTTLE * 300.0);
-			motorCMD.motor2 = (uint16_t)(latestMotorCommand.ROLL * 300.0);
-			motorCMD.motor3 = (uint16_t)(latestMotorCommand.PITCH * 300.0);
-			motorCMD.motor4 = (uint16_t)(latestMotorCommand.YAW * 300.0);
+			if (!motorController.isArmed())
+				motorController.arm();
+			
+			//blah blah blah continue on as usual here
+			
 		}
-		
-		motorController.updateSetPoint(motorCMD.motor1, motorCMD.motor2, motorCMD.motor3, motorCMD.motor4);
-		
-		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(updateRate_mS));
+
 	}
 }

@@ -4,3 +4,6 @@
 [submodule "libraries/embeddedMadgwickFilter"]
 	path = libraries/embeddedMadgwickFilter
 	url = git@github.com:brandonbraun653/EmbeddedMadgwickFilter.git
+[submodule "libraries/MiniPID"]
+	path = libraries/MiniPID
+	url = git@github.com:brandonbraun653/MiniPID.git

@@ -15,7 +15,9 @@
 #include "fcsConfig.hpp"
 #include "dataTypes.hpp"
 
-extern QueueHandle_t qIMURawData;		/* Passes raw IMU data to AHRS */
+extern QueueHandle_t qIMU;		/* Buffers raw data from IMU for the AHRS algorithm */
+extern QueueHandle_t qAHRS;		/* Buffers processed AHRS data for the PID controller */
+extern QueueHandle_t qPID;		/* Buffers PID output data for the Motor controller */
 
 extern QueueHandle_t qCommandBuffer;	/* Handles external serial command inputs */
 
@@ -30,6 +32,7 @@ enum TaskIndex
 	LED_STATUS_TASK,
 	RADIO_TASK,
 	BLUETOOTH_TASK,
+	PID_TASK,
 	
 	TOTAL_TASK_SIZE
 };
