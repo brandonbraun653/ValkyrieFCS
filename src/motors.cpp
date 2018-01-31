@@ -23,6 +23,23 @@
 #include "motors.hpp"
 
 
+/*-------------------------------------------------
+ *				Motor Orientation
+ * Motor 1: TOP RIGHT		-- CCW
+ * Motor 2: BOTTOM LEFT		-- CCW
+ * Motor 3: TOP LEFT		-- CW
+ * Motor 4: BOTTOM RIGHT	-- CW
+ * 
+ *
+ *			M1  M2  M3  M4
+ * +Pitch:	+	-	+	-
+ * -Pitch:	-	+	-	+
+ * +Roll:	-	+	+	-
+ * -Roll:	+	-	-	+
+ * 
+ **/
+
+
 #define ESC_ARM 800
 #define ESC_MIN_THROTTLE 1060
 #define ESC_MAX_THROTTLE 1860
@@ -57,23 +74,57 @@ void motorTask(void* argument)
 	
 	ESCQuad motorController;
 	motorController.initialize(initStruct);
+	//motorController.throttleCalibration();
 	
+	motorController.arm();
 	
+	//const float throttleRange = ESC_MAX_THROTTLE - ESC_MIN_THROTTLE;
+	const float throttleRange = 265;
+	
+	int dPitch = 0;
+	int dRoll = 0;
+	int dYaw = 0;
+	
+	int baseThrottle = ESC_MIN_THROTTLE + 25;
+	
+	uint16_t m1 = baseThrottle;
+	uint16_t m2 = baseThrottle;
+	uint16_t m3 = baseThrottle;
+	uint16_t m4 = baseThrottle;
 	
 	TickType_t lastTimeWoken = xTaskGetTickCount();
 	for (;;)
 	{
 		/* Block indefinitely until a new PID command has been issued */
 		xQueueReceive(qPID, &pidInput, portMAX_DELAY);
-
-		if (MotorControllerState == MOTOR_STATE_ARM)
+		
+		/* There is a chance a lot of packets were missed, so make sure the latest is received.
+		 * TODO: In the pid loop, Change the queue size to 1 and always overwrite...*/
+		if (uxQueueMessagesWaiting(qPID) > 0)
 		{
-			if (!motorController.isArmed())
-				motorController.arm();
-			
-			//blah blah blah continue on as usual here
-			
+			while (uxQueueMessagesWaiting(qPID) > 0){ xQueueReceive(qPID, &pidInput, 0); }
 		}
 
+		/*-------------------------------------
+		 * Command Input Processing 
+		 *------------------------------------*/
+		dPitch = (int)(pidInput.pitchControl * throttleRange);
+		dRoll = (int)(pidInput.rollControl * throttleRange);
+		dYaw = (int)(pidInput.yawControl * throttleRange);
+		
+		m1 = (uint16_t)(baseThrottle - dPitch + dRoll);
+		m2 = (uint16_t)(baseThrottle + dPitch - dRoll);
+		m3 = (uint16_t)(baseThrottle - dPitch - dRoll);
+		m4 = (uint16_t)(baseThrottle + dPitch + dRoll);
+		
+		m1 = motorController.limit(m1);
+		m2 = motorController.limit(m2);
+		m3 = motorController.limit(m3);
+		m4 = motorController.limit(m4);
+		
+		/*-------------------------------------
+		 * Write Motors
+		 *------------------------------------*/
+		motorController.updateSetPoint(m1, m2, m3, m4);
 	}
 }

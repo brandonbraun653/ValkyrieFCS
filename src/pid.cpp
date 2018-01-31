@@ -29,6 +29,10 @@ const float rollAngleSetPoint = 0.0;	//deg
 const float pitchAngleSetPoint = 0.0;	//deg
 const float yawAngleSetPoint = 0.0;		//deg => eventually put this in the Radio task (process signals)
 
+#define KP 8.1f
+#define KI 30.0f
+#define KD 12.0f
+
 void pidTask(void* argument)
 {
 
@@ -37,17 +41,20 @@ void pidTask(void* argument)
 	ahrs.roll = 0.0;
 	ahrs.yaw = 0.0;
 
-	MiniPID pitchAngleController = MiniPID(1.0f, 0.0f, 0.0f);
-	MiniPID rollAngleController = MiniPID(1.0f, 0.0f, 0.0f);
-	MiniPID yawAngleController = MiniPID(1.0f, 0.0f, 0.0f);
+	MiniPID pitchAngleController	= MiniPID(KP, KI, KD);
+	MiniPID rollAngleController		= MiniPID(KP, KI, KD);
+	MiniPID yawAngleController		= MiniPID(KP, KI, KD);
 	
 	/* Operate as normalized controllers for numerical stability */
 	pitchAngleController.setOutputLimits(-1.0f, 1.0f);
 	rollAngleController.setOutputLimits(-1.0f, 1.0f);
 	yawAngleController.setOutputLimits(-1.0f, 1.0f);
-
-	float pitchOut = 0.0;
-	float rollOut = 0.0;
+	
+	pitchAngleController.setOutputRampRate(0.1f);
+	rollAngleController.setOutputRampRate(0.1f);
+	
+	pitchAngleController.setDirection(true); //Negative fb
+	rollAngleController.setDirection(true); //Negative fb
 
 	TickType_t lastTimeWoken = xTaskGetTickCount();
 	for (;;)
