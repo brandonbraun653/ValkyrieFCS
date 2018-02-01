@@ -56,7 +56,7 @@ void motorTask(void* argument)
 	initStruct.armCMD_uS = ESC_ARM;
 	initStruct.minThrottleCMD_uS = ESC_MIN_THROTTLE;
 	initStruct.maxThrottleCMD_uS = ESC_MAX_THROTTLE;
-	initStruct.outputFrequency = 55.0;
+	initStruct.outputFrequency = 450.0;
 	
 	initStruct.motor1 = boost::make_shared<GPIOClass>(GPIOB, PIN_6, ULTRA_SPD, GPIO_AF2_TIM4);
 	initStruct.motor1_timer_channel = TIM_CHANNEL_1;

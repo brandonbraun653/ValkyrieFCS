@@ -29,9 +29,9 @@ const float rollAngleSetPoint = 0.0;	//deg
 const float pitchAngleSetPoint = 0.0;	//deg
 const float yawAngleSetPoint = 0.0;		//deg => eventually put this in the Radio task (process signals)
 
-#define KP 8.1f
-#define KI 30.0f
-#define KD 12.0f
+#define KP 30.0f
+#define KI 0.0f
+#define KD 0.0f
 
 void pidTask(void* argument)
 {
@@ -50,8 +50,8 @@ void pidTask(void* argument)
 	rollAngleController.setOutputLimits(-1.0f, 1.0f);
 	yawAngleController.setOutputLimits(-1.0f, 1.0f);
 	
-	pitchAngleController.setOutputRampRate(0.1f);
-	rollAngleController.setOutputRampRate(0.1f);
+	//pitchAngleController.setOutputRampRate(0.1f);
+	//rollAngleController.setOutputRampRate(0.1f);
 	
 	pitchAngleController.setDirection(true); //Negative fb
 	rollAngleController.setDirection(true); //Negative fb
