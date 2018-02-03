@@ -108,9 +108,9 @@ void motorTask(void* argument)
 		/*-------------------------------------
 		 * Command Input Processing 
 		 *------------------------------------*/
-		dPitch = (int)(pidInput.pitchControl * throttleRange);
-		dRoll = (int)(pidInput.rollControl * throttleRange);
-		dYaw = (int)(pidInput.yawControl * throttleRange);
+		dPitch = (int)(pidInput.pitchControl);
+		dRoll = (int)(pidInput.rollControl);
+		dYaw = (int)(pidInput.yawControl);
 		
 		m1 = (uint16_t)(baseThrottle - dPitch + dRoll);
 		m2 = (uint16_t)(baseThrottle + dPitch - dRoll);

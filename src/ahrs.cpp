@@ -23,9 +23,9 @@
 #include "threading.hpp"
 
 /* Signal Processing Includes */
-#include "libraries/DspFilters/Filter.h"
-#include "libraries/DspFilters/RBJ.h"
-#include "libraries/DspFilters/ChebyshevI.h"
+//#include "libraries/DspFilters/Filter.h"
+//#include "libraries/DspFilters/RBJ.h"
+//#include "libraries/DspFilters/ChebyshevI.h"
 
 /* Madgwick Filter */
 #include "madgwick.hpp"
@@ -35,25 +35,16 @@ AHRSDataDeg_t ahrsData;	/* Output struct to push to the motor controller thread 
 
 #define NUM_SAMPLES 1
 
+#define DEADBAND_ACCEL 0.5f
+#define DEADBAND_GYRO 0.5f
+
 void ahrsTask(void* argument)
 {
 	float beta = 2.5; //2.5 seems to work fairly well. 10.0 has a fantastic response time but is horrendously noisy.
 	float roll, pitch, yaw;
-	Eigen::Vector3f accel, gyro, mag, eulerDeg;
+	Eigen::Vector3f accel, gyro, mag, eulerDeg, accelLast, gyroLast, magLast;
 	
 	MadgwickFilter ahrs((AHRS_UPDATE_RATE_MULTIPLIER * SENSOR_UPDATE_FREQ_HZ), beta);
-	
-//	Dsp::SimpleFilter <Dsp::RBJ::LowPass> f;
-//	f.setup(SENSOR_UPDATE_FREQ_HZ, // sample rate Hz
-//	         50, // cutoff frequency Hz
-//	         1);  // "Q" (resonance)
-	
-	Dsp::SimpleFilter <Dsp::ChebyshevI::BandStop <3>, 2> f;
-	f.setup(3, // order
-	         SENSOR_UPDATE_FREQ_HZ, // sample rate
-	         25, // center frequency
-	         50,  // band width
-	         1);  // ripple dB
 	
 	
 	float* rawData[9];
@@ -66,6 +57,11 @@ void ahrsTask(void* argument)
 		/* Indefinitely wait until new sensor data has become available */
 		xQueueReceive(qIMU, &imuData, portMAX_DELAY);
 		
+		
+		accelLast = accel;
+		gyroLast = gyro;
+		magLast = mag;
+		
 		accel << imuData.ax, imuData.ay, imuData.az;
 		gyro  << imuData.gx, imuData.gy, imuData.gz;
 		mag   << imuData.mx, imuData.my, imuData.mz;
@@ -74,23 +70,21 @@ void ahrsTask(void* argument)
 		/*----------------------------
 		* Filtering 
 		*---------------------------*/
-//		rawData[0][0] = imuData.ax;
-//		rawData[1][0] = imuData.ay;
-//		rawData[2][0] = imuData.az;
-//		
-//		rawData[3][0] = imuData.gx;
-//		rawData[4][0] = imuData.gy;
-//		rawData[5][0] = imuData.gz;
-//		
-//		rawData[6][0] = imuData.mx;
-//		rawData[7][0] = imuData.my;
-//		rawData[8][0] = imuData.mz;
-//		
-//		f.process(NUM_SAMPLES, rawData);
-//		
-//		accel << rawData[0][0], rawData[1][0], rawData[2][0];
-//		gyro << rawData[3][0], rawData[4][0], rawData[5][0];
-//		mag << rawData[6][0], rawData[7][0], rawData[8][0];
+		
+		/* DeadBand Filter:
+		 * Don't accept new values unless they fall outside the deadband range*/
+		Eigen::Vector3f dA = accel - accelLast;
+		Eigen::Vector3f dG = gyro - gyroLast;
+		//Eigen::Vector3f dM = mag - magLast;
+		
+		for (int axis = 0; axis < 3; axis++)
+		{
+			if (abs(dA(axis)) < DEADBAND_ACCEL)
+				accel(axis) = accelLast(axis);
+			
+			if (abs(dG(axis)) < DEADBAND_GYRO)
+				gyro(axis) = gyroLast(axis);
+		}
 		
 		
 		/*----------------------------
