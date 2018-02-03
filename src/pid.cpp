@@ -60,7 +60,9 @@ void pidTask(void* argument)
 	for (;;)
 	{
 		/* Check for an update from the AHRS thread */
+		xSemaphoreTake(ahrsBufferMutex, 0);
 		while (uxQueueMessagesWaiting(qAHRS) > 0){ xQueueReceive(qAHRS, &ahrs, 0); }
+		xSemaphoreGive(ahrsBufferMutex);
 
 		//TODO:
 		/* Check for an update from the radio for new set points */

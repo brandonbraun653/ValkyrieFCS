@@ -23,7 +23,7 @@
 #define STATUS_LED_UPDATE_FREQ_HZ	5		
 #define CONSOLE_UPDATE_FREQ_HZ		5		
 #define PID_UPDATE_FREQ_HZ			450		
-#define SENSOR_UPDATE_FREQ_HZ		75		/* Bandwidth limited by the LSM9DS1 Mag sensor (75Hz) */		
+#define SENSOR_UPDATE_FREQ_HZ		500			
 #define AHRS_UPDATE_RATE_MULTIPLIER	5		/* AHRS will have an effective update at X multiple of SENSOR_UPDATE_FREQ_HZ (x5) */
 
 /*-----------------------------

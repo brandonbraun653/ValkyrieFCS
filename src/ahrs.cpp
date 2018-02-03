@@ -69,6 +69,8 @@ void ahrsTask(void* argument)
 		ahrsData(eulerDeg);				//Copy the angles into the data struct assuming [PITCH, ROLL, YAW] structure
 
 		/* Send data over to the PID thread without waiting for confirmation of success */
+		xSemaphoreTake(ahrsBufferMutex, 2);
 		xQueueSendToBack(qAHRS, &ahrsData, 0);
+		xSemaphoreGive(ahrsBufferMutex);
 	}
 }

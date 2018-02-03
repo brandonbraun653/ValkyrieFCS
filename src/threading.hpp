@@ -15,12 +15,20 @@
 #include "fcsConfig.hpp"
 #include "dataTypes.hpp"
 
+/*----------------------------------
+* Queues
+*----------------------------------*/
 extern QueueHandle_t qIMU;		/* Buffers raw data from IMU for the AHRS algorithm */
 extern QueueHandle_t qAHRS;		/* Buffers processed AHRS data for the PID controller */
 extern QueueHandle_t qPID;		/* Buffers PID output data for the Motor controller */
 
 extern QueueHandle_t qCommandBuffer;	/* Handles external serial command inputs */
 
+/*----------------------------------
+* Semaphores and Mutexes
+*----------------------------------*/
+extern SemaphoreHandle_t ahrsBufferMutex; /* Protects data passing between AHRS and PID loops when
+											 running at differing frequencies */
 
 enum TaskIndex
 {

@@ -26,6 +26,7 @@
 
 
 const int updateRate_mS = (1.0 / SENSOR_UPDATE_FREQ_HZ) * 1000.0;
+const int magMaxUpdateRate_mS = (1.0 / LSM9DS1_M_MAX_BW) * 1000.0;
 
 IMUData_t sensorData;
 
@@ -46,15 +47,33 @@ void sensorTask(void* argument)
 	imu.calibrate(true);		/* "true" forces an automatic software subtraction of the calculated bias from all further data */
 	imu.calibrateMag(true);		/* "true" writes the offest into the mag sensor hardware for automatic subtraction in results */
 	
-	
+	int count = 0;
 	TickType_t lastTimeWoken = xTaskGetTickCount();
 	for (;;)
 	{
-		/* Grab some new readings from the sensor */
-		imu.read9Dof();
-		imu.calc9Dof();
+		/* Update Accel & Gyro Data at whatever frequency set by user. Max bandwidth on
+		 * chip is 952Hz which will saturate FreeRTOS if sampled that often.*/
+		imu.readAccel(); 
+		imu.readGyro(); 
 		
-		/* Acceleration in m/s^2 _not_ g's*/
+		/* Update Mag Data at a max frequency set by LSM9DS1_M_MAX_BW (~75Hz) */
+		#if (SENSOR_UPDATE_FREQ_HZ > LSM9DS1_M_MAX_BW)
+		if (count > magMaxUpdateRate_mS)
+		{
+			imu.readMag();
+			count = 0;
+		}
+		else
+			count += updateRate_mS;
+		#else
+		imu.readMag();
+		#endif
+			
+		/* Convert raw data from chip into meaningful data */
+		imu.calcAccel(); imu.calcGyro(); imu.calcMag();
+		
+		
+		/* Acceleration in m/s^2 */
 		sensorData.ax = imu.aRaw[0];	
 		sensorData.ay = imu.aRaw[1];
 		sensorData.az = imu.aRaw[2];
@@ -70,7 +89,6 @@ void sensorTask(void* argument)
 		sensorData.mz = -1.0f * imu.mRaw[2];		//from LSM9DS1, mag z is opposite direction of accel z
 		
 		sensorData.mSTime = 0.0; //TODO: Get the RTC working so we can add a time stamp for more accurate data logging
-		
 		
 		/* Send data over to the AHRS thread without waiting for confirmation of success */
 		xQueueSendToBack(qIMU, &sensorData, 0);
