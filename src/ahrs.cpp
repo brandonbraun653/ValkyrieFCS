@@ -23,14 +23,17 @@
 #include "threading.hpp"
 
 /* Signal Processing Includes */
-//#include "libraries/DspFilters/Filter.h"
-//#include "libraries/DspFilters/ChebyshevI.h"
+#include "libraries/DspFilters/Filter.h"
+#include "libraries/DspFilters/RBJ.h"
+#include "libraries/DspFilters/ChebyshevI.h"
 
 /* Madgwick Filter */
 #include "madgwick.hpp"
 
 IMUData_t imuData;		/* Input struct to read from the IMU thread */
 AHRSDataDeg_t ahrsData;	/* Output struct to push to the motor controller thread */
+
+#define NUM_SAMPLES 1
 
 void ahrsTask(void* argument)
 {
@@ -39,6 +42,24 @@ void ahrsTask(void* argument)
 	Eigen::Vector3f accel, gyro, mag, eulerDeg;
 	
 	MadgwickFilter ahrs((AHRS_UPDATE_RATE_MULTIPLIER * SENSOR_UPDATE_FREQ_HZ), beta);
+	
+//	Dsp::SimpleFilter <Dsp::RBJ::LowPass> f;
+//	f.setup(SENSOR_UPDATE_FREQ_HZ, // sample rate Hz
+//	         50, // cutoff frequency Hz
+//	         1);  // "Q" (resonance)
+	
+	Dsp::SimpleFilter <Dsp::ChebyshevI::BandStop <3>, 2> f;
+	f.setup(3, // order
+	         SENSOR_UPDATE_FREQ_HZ, // sample rate
+	         25, // center frequency
+	         50,  // band width
+	         1);  // ripple dB
+	
+	
+	float* rawData[9];
+	for (int i = 0; i < 9; i++)
+		rawData[i] = new float[NUM_SAMPLES];
+	
 	
 	for (;;)
 	{
@@ -51,9 +72,26 @@ void ahrsTask(void* argument)
 		
 		
 		/*----------------------------
-		 * Filtering 
-		 *---------------------------*/
-		//Currently don't need any signal processing. Implemented on IMU chip.
+		* Filtering 
+		*---------------------------*/
+//		rawData[0][0] = imuData.ax;
+//		rawData[1][0] = imuData.ay;
+//		rawData[2][0] = imuData.az;
+//		
+//		rawData[3][0] = imuData.gx;
+//		rawData[4][0] = imuData.gy;
+//		rawData[5][0] = imuData.gz;
+//		
+//		rawData[6][0] = imuData.mx;
+//		rawData[7][0] = imuData.my;
+//		rawData[8][0] = imuData.mz;
+//		
+//		f.process(NUM_SAMPLES, rawData);
+//		
+//		accel << rawData[0][0], rawData[1][0], rawData[2][0];
+//		gyro << rawData[3][0], rawData[4][0], rawData[5][0];
+//		mag << rawData[6][0], rawData[7][0], rawData[8][0];
+		
 		
 		/*----------------------------
 		 * AHRS Algorithm 
@@ -67,6 +105,12 @@ void ahrsTask(void* argument)
 		
 		ahrs.getEulerDeg(eulerDeg);		//Generate Euler angles from internal quaternion data
 		ahrsData(eulerDeg);				//Copy the angles into the data struct assuming [PITCH, ROLL, YAW] structure
+		
+		#ifdef DEBUG
+		float pitch = eulerDeg(0);
+		float roll = eulerDeg(1);
+		float yaw = eulerDeg(2);
+		#endif
 
 		/* Send data over to the PID thread without waiting for confirmation of success */
 		xSemaphoreTake(ahrsBufferMutex, 2);
