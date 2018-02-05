@@ -51,6 +51,7 @@ void sensorTask(void* argument)
 	TickType_t lastTimeWoken = xTaskGetTickCount();
 	for (;;)
 	{
+		activeTask = SENSOR_TASK;
 		/* Update Accel & Gyro Data at whatever frequency set by user. Max bandwidth on
 		 * chip is 952Hz which will saturate FreeRTOS if sampled that often.*/
 		imu.readAccel(); 

@@ -40,27 +40,18 @@ AHRSDataDeg_t ahrsData;	/* Output struct to push to the motor controller thread 
 
 void ahrsTask(void* argument)
 {
-	float beta = 2.5; //2.5 seems to work fairly well. 10.0 has a fantastic response time but is horrendously noisy.
+	float beta = 10.0; //2.5 seems to work fairly well. 10.0 has a fantastic response time but is horrendously noisy.
 	float roll, pitch, yaw;
-	Eigen::Vector3f accel, gyro, mag, eulerDeg, accelLast, gyroLast, magLast;
+	Eigen::Vector3f accel, gyro, mag, eulerDeg;
 	
-	MadgwickFilter ahrs((AHRS_UPDATE_RATE_MULTIPLIER * SENSOR_UPDATE_FREQ_HZ), beta);
-	
-	
-	float* rawData[9];
-	for (int i = 0; i < 9; i++)
-		rawData[i] = new float[NUM_SAMPLES];
-	
+	MadgwickFilter ahrs((AHRS_UPDATE_RATE_MULTIPLIER * SENSOR_UPDATE_FREQ_HZ), beta);	
 	
 	for (;;)
 	{
+		activeTask = AHRS_TASK;
+		
 		/* Indefinitely wait until new sensor data has become available */
 		xQueueReceive(qIMU, &imuData, portMAX_DELAY);
-		
-		
-		accelLast = accel;
-		gyroLast = gyro;
-		magLast = mag;
 		
 		accel << imuData.ax, imuData.ay, imuData.az;
 		gyro  << imuData.gx, imuData.gy, imuData.gz;
@@ -70,23 +61,7 @@ void ahrsTask(void* argument)
 		/*----------------------------
 		* Filtering 
 		*---------------------------*/
-		
-		/* DeadBand Filter:
-		 * Don't accept new values unless they fall outside the deadband range*/
-		Eigen::Vector3f dA = accel - accelLast;
-		Eigen::Vector3f dG = gyro - gyroLast;
-		//Eigen::Vector3f dM = mag - magLast;
-		
-		for (int axis = 0; axis < 3; axis++)
-		{
-			if (abs(dA(axis)) < DEADBAND_ACCEL)
-				accel(axis) = accelLast(axis);
-			
-			if (abs(dG(axis)) < DEADBAND_GYRO)
-				gyro(axis) = gyroLast(axis);
-		}
-		
-		
+
 		/*----------------------------
 		 * AHRS Algorithm 
 		 *---------------------------*/
@@ -94,6 +69,8 @@ void ahrsTask(void* argument)
 		 * to achieve decent convergence to a stable value. This thread only runs when 
 		 * new data has arrived from the IMU, so frequency multiplication is as simple 
 		 * as looping 3-5 times here. */
+		taskENTER_CRITICAL();
+		
 		for (int i = 0; i < AHRS_UPDATE_RATE_MULTIPLIER; i++)
 			ahrs.update(accel, gyro, mag);
 		
@@ -110,5 +87,7 @@ void ahrsTask(void* argument)
 		xSemaphoreTake(ahrsBufferMutex, 2);
 		xQueueSendToBack(qAHRS, &ahrsData, 0);
 		xSemaphoreGive(ahrsBufferMutex);
+		
+		taskEXIT_CRITICAL();
 	}
 }

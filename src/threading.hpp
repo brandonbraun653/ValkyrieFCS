@@ -46,6 +46,7 @@ enum TaskIndex
 };
 extern boost::container::vector<TaskHandle_t> TaskHandle;
 
+extern TaskIndex activeTask; /* A simple debugging flag to check which task is currently running */
 
 /* Allows sending a notification message to any task from anywhere */
 extern BaseType_t xSendTaskMessage(const TaskIndex, const uint32_t);

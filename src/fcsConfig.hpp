@@ -7,7 +7,7 @@
  * 5: highest
  * 1: lowest
  *----------------------------*/
-#define AHRS_UPDATE_PRIORITY		5
+#define AHRS_UPDATE_PRIORITY		4
 #define SENSOR_UPDATE_PRIORITY		4
 #define RADIO_UPDATE_PRIORITY		4
 #define MOTOR_UPDATE_PRIORITY		4

@@ -55,7 +55,7 @@ void motorTask(void* argument)
 	ESCQuad_Init initStruct;
 	initStruct.armCMD_uS = ESC_ARM;
 	initStruct.minThrottleCMD_uS = ESC_MIN_THROTTLE;
-	initStruct.maxThrottleCMD_uS = ESC_MAX_THROTTLE;
+	initStruct.maxThrottleCMD_uS = 1400;
 	initStruct.outputFrequency = 450.0;
 	
 	initStruct.motor1 = boost::make_shared<GPIOClass>(GPIOB, PIN_6, ULTRA_SPD, GPIO_AF2_TIM4);
@@ -79,13 +79,13 @@ void motorTask(void* argument)
 	motorController.arm();
 	
 	//const float throttleRange = ESC_MAX_THROTTLE - ESC_MIN_THROTTLE;
-	const float throttleRange = 265;
+	const float throttleRange = initStruct.maxThrottleCMD_uS - initStruct.minThrottleCMD_uS;
 	
 	int dPitch = 0;
 	int dRoll = 0;
 	int dYaw = 0;
 	
-	int baseThrottle = ESC_MIN_THROTTLE + 25;
+	int baseThrottle = initStruct.minThrottleCMD_uS + 200;
 	
 	uint16_t m1 = baseThrottle;
 	uint16_t m2 = baseThrottle;
@@ -95,6 +95,8 @@ void motorTask(void* argument)
 	TickType_t lastTimeWoken = xTaskGetTickCount();
 	for (;;)
 	{
+		activeTask = MOTOR_TASK;
+		
 		/* Block indefinitely until a new PID command has been issued */
 		xQueueReceive(qPID, &pidInput, portMAX_DELAY);
 		
@@ -108,14 +110,19 @@ void motorTask(void* argument)
 		/*-------------------------------------
 		 * Command Input Processing 
 		 *------------------------------------*/
-		dPitch = (int)(pidInput.pitchControl);
-		dRoll = (int)(pidInput.rollControl);
-		dYaw = (int)(pidInput.yawControl);
+		dPitch = (int)(pidInput.pitchControl * 0.5f);
+		dRoll = (int)(pidInput.rollControl * 0.5f);
+		dYaw = (int)(pidInput.yawControl * 0.5f);
 		
-		m1 = (uint16_t)(baseThrottle - dPitch + dRoll);
-		m2 = (uint16_t)(baseThrottle + dPitch - dRoll);
-		m3 = (uint16_t)(baseThrottle - dPitch - dRoll);
-		m4 = (uint16_t)(baseThrottle + dPitch + dRoll);
+		//		m1 = (uint16_t)(baseThrottle - dPitch + dRoll);
+		//		m2 = (uint16_t)(baseThrottle + dPitch - dRoll);
+		//		m3 = (uint16_t)(baseThrottle - dPitch - dRoll);
+		//		m4 = (uint16_t)(baseThrottle + dPitch + dRoll);
+		
+		m1 = (uint16_t)(baseThrottle +   dPitch  + (-dRoll));
+		m2 = (uint16_t)(baseThrottle + (-dPitch) +   dRoll);
+		m3 = (uint16_t)(baseThrottle +   dPitch  +   dRoll);
+		m4 = (uint16_t)(baseThrottle + (-dPitch) + (-dRoll));
 		
 		m1 = motorController.limit(m1);
 		m2 = motorController.limit(m2);

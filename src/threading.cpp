@@ -20,7 +20,7 @@ SemaphoreHandle_t ahrsBufferMutex = xSemaphoreCreateMutex();
 
 
 boost::container::vector<TaskHandle_t> TaskHandle(TOTAL_TASK_SIZE);
-
+TaskIndex activeTask;
 
 
 BaseType_t xSendTaskMessage(TaskIndex idx, uint32_t msg)

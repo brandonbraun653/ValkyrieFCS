@@ -7,3 +7,6 @@
 [submodule "libraries/MiniPID"]
 	path = libraries/MiniPID
 	url = git@github.com:brandonbraun653/MiniPID.git
+[submodule "libraries/kalman"]
+	path = libraries/kalman
+	url = git@github.com:mherb/kalman.git
