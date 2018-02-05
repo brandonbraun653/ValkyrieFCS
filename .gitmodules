@@ -10,3 +10,6 @@
 [submodule "libraries/kalman"]
 	path = libraries/kalman
 	url = git@github.com:mherb/kalman.git
+[submodule "libraries/kfrlib"]
+	path = libraries/kfrlib
+	url = git@github.com:kfrlib/kfr.git

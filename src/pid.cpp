@@ -30,7 +30,7 @@ float rollAngleSetPoint = 0.0;	//deg
 float pitchAngleSetPoint = 0.0;	//deg
 float yawAngleSetPoint = 0.0;	//deg => eventually put this in the Radio task (process signals)
 
-#define KP 10.0f
+#define KP 30.0f
 #define KI 5.0f
 #define KD 0.1f
 

@@ -114,11 +114,6 @@ void motorTask(void* argument)
 		dRoll = (int)(pidInput.rollControl * 0.5f);
 		dYaw = (int)(pidInput.yawControl * 0.5f);
 		
-		//		m1 = (uint16_t)(baseThrottle - dPitch + dRoll);
-		//		m2 = (uint16_t)(baseThrottle + dPitch - dRoll);
-		//		m3 = (uint16_t)(baseThrottle - dPitch - dRoll);
-		//		m4 = (uint16_t)(baseThrottle + dPitch + dRoll);
-		
 		m1 = (uint16_t)(baseThrottle +   dPitch  + (-dRoll));
 		m2 = (uint16_t)(baseThrottle + (-dPitch) +   dRoll);
 		m3 = (uint16_t)(baseThrottle +   dPitch  +   dRoll);
