@@ -22,18 +22,21 @@ struct IMUData_t
 	float mSTime;		/* Time stamp in mS */
 };
 
-struct AHRSDataDeg_t	/* Units: Degrees */
+struct AHRSDataDeg_t
 {
-	void operator()(Eigen::Vector3f val)
+	void operator()(Eigen::Vector3f euler_deg, Eigen::Vector3f acceleration_ms2,
+		Eigen::Vector3f gyroscope_dps, Eigen::Vector3f magnetometer_g)
 	{
-		pitch = val(0);
-		roll = val(1);
-		yaw = val(2);
+		eulerAngles = euler_deg;		
+		accel = acceleration_ms2;
+		gyro = gyroscope_dps;
+		mag = magnetometer_g;
 	}
-
-	float pitch = 0.0;
-	float roll = 0.0;
-	float yaw = 0.0;
+	
+	Eigen::Vector3f eulerAngles;	/* [PITCH, ROLL, YAW] (deg) */
+	Eigen::Vector3f accel;			/* [X, Y, Z] (m/s^2) */
+	Eigen::Vector3f gyro;			/* [X, Y, Z] (dps) */
+	Eigen::Vector3f mag;			/* [X, Y, Z] (gauss) */
 };
 
 struct PIDData_t

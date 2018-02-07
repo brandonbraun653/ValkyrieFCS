@@ -11,7 +11,6 @@
 #include "fcsConfig.hpp"
 #include "radio.hpp"
 #include "sdcard.hpp"
-#include "sensor.hpp"
 #include "ahrs.hpp"
 #include "motors.hpp"
 #include "console.hpp"
@@ -35,7 +34,6 @@ int main(void)
 	#endif 
 	
 	
-	xTaskCreate(sensorTask,		"sensor",		2000,	NULL,	SENSOR_UPDATE_PRIORITY,		&TaskHandle[SENSOR_TASK]);
 	//xTaskCreate(sdCardTask,		"sdTask",		2000,	NULL,	SDCARD_LOGGING_PRIORITY,	&TaskHandle[SDCARD_TASK]);
 	xTaskCreate(ahrsTask,		"ahrsTask",		2000,	NULL,	AHRS_UPDATE_PRIORITY,		&TaskHandle[AHRS_TASK]);
 	//xTaskCreate(consoleTask,	"cmdListener",	2000,	NULL,	CONSOLE_LOGGING_PRIORITY,	&TaskHandle[CONSOLE_TASK]);

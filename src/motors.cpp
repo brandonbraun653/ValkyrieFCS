@@ -50,6 +50,11 @@ PIDData_t pidInput;
 MotorState MotorControllerState = MOTOR_STATE_OFF;
 
 
+/* Low pass filtering constants for pitch cmd input */
+float dt = (1.0f / PID_UPDATE_FREQ_HZ);
+float tau = 0.1f;
+float alpha_lp = dt / tau;
+
 void motorTask(void* argument)
 {	
 	ESCQuad_Init initStruct;
@@ -85,12 +90,15 @@ void motorTask(void* argument)
 	int dRoll = 0;
 	int dYaw = 0;
 	
-	int baseThrottle = initStruct.minThrottleCMD_uS + 200;
+	int baseThrottle = initStruct.minThrottleCMD_uS + 50;
 	
 	uint16_t m1 = baseThrottle;
 	uint16_t m2 = baseThrottle;
 	uint16_t m3 = baseThrottle;
 	uint16_t m4 = baseThrottle;
+	
+	float pRaw = 0.0, pFiltered = 0.0;
+	float rRaw = 0.0, rFiltered = 0.0;
 	
 	TickType_t lastTimeWoken = xTaskGetTickCount();
 	for (;;)
@@ -107,17 +115,23 @@ void motorTask(void* argument)
 			while (uxQueueMessagesWaiting(qPID) > 0){ xQueueReceive(qPID, &pidInput, 0); }
 		}
 
+		
+		/* Try low pass filtering the input signal */
+		pFiltered += alpha_lp * (pidInput.pitchControl - pFiltered);
+		rFiltered += alpha_lp * (pidInput.rollControl - pFiltered);
+		
+		dPitch = pFiltered;
+		dRoll = rFiltered;
+		
+		
 		/*-------------------------------------
 		 * Command Input Processing 
 		 *------------------------------------*/
-		dPitch = (int)(pidInput.pitchControl * 0.5f);
-		dRoll = (int)(pidInput.rollControl * 0.5f);
-		dYaw = (int)(pidInput.yawControl * 0.5f);
-		
-		m1 = (uint16_t)(baseThrottle +   dPitch  + (-dRoll));
-		m2 = (uint16_t)(baseThrottle + (-dPitch) +   dRoll);
-		m3 = (uint16_t)(baseThrottle +   dPitch  +   dRoll);
-		m4 = (uint16_t)(baseThrottle + (-dPitch) + (-dRoll));
+		//TODO: Convert this to matrix multiplication
+		m1 = (uint16_t)(baseThrottle + dPitch); //+ (-dRoll));
+		m2 = (uint16_t)(baseThrottle - dPitch); //+   dRoll);
+		m3 = (uint16_t)(baseThrottle + dPitch); //+   dRoll);
+		m4 = (uint16_t)(baseThrottle - dPitch); //+ (-dRoll));
 		
 		m1 = motorController.limit(m1);
 		m2 = motorController.limit(m2);

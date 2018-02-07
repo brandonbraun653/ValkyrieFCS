@@ -16,7 +16,7 @@
 #include "pid.hpp"
 #include "radio.hpp"
 
-const int updateRate_mS = (1.0 / PID_UPDATE_FREQ_HZ) * 1000.0;
+const int updateRate_mS = (1.0f / PID_UPDATE_FREQ_HZ) * 1000.0f;
 
 AHRSDataDeg_t ahrs;	/* Input data from the AHRS algorithm */
 PIDData_t pidCMD;	/* Output data from this thread */
@@ -30,81 +30,85 @@ float rollAngleSetPoint = 0.0;	//deg
 float pitchAngleSetPoint = 0.0;	//deg
 float yawAngleSetPoint = 0.0;	//deg => eventually put this in the Radio task (process signals)
 
-#define KP 30.0f
-#define KI 5.0f
-#define KD 0.1f
+float pitchRateSetPoint = 0.0;
 
-#define PID_OUTPUT_RANGE 256.0f
+#define ANGLE_KP 1.0f
+#define ANGLE_KI 0.0f
+#define ANGLE_KD 0.0f
+
+#define RATE_KP 15.0f
+#define RATE_KI 0.0f
+#define RATE_KD 0.1f
+
+#define MOTOR_OUTPUT_RANGE 256.0f
+#define GYRO_SENSITIVITY 2000 //dps
 
 void pidTask(void* argument)
-{
+{	
+	float pAngIn = 0.0;			//Current pitch angle from AHRS (deg)
+	
+	
+	
 
-	/* Ensure we don't send the PID controllers ridiculous values upon init */
-	ahrs.pitch = 0.0;
-	ahrs.roll = 0.0;
-	ahrs.yaw = 0.0;
-
-	//	MiniPID pitchAngleController	= MiniPID(PID_UPDATE_FREQ_HZ, KP, KI, KD);
-	//	MiniPID rollAngleController		= MiniPID(PID_UPDATE_FREQ_HZ, KP, KI, KD);
-	//	MiniPID yawAngleController		= MiniPID(PID_UPDATE_FREQ_HZ, KP, KI, KD);
-	//	
-	//	/* Operate as normalized controllers for numerical stability */
-	//	pitchAngleController.setOutputLimits(-PID_OUTPUT_RANGE, PID_OUTPUT_RANGE);
-	//	rollAngleController.setOutputLimits(-PID_OUTPUT_RANGE, PID_OUTPUT_RANGE);
-	//	yawAngleController.setOutputLimits(-PID_OUTPUT_RANGE, PID_OUTPUT_RANGE);
-	//	
-	//	pitchAngleController.setDirection(true); //Negative fb
-	//	rollAngleController.setDirection(true); //Negative fb
-	//	
-	//	pitchAngleController.setMaxIOutput(PID_OUTPUT_RANGE);
-	//	rollAngleController.setMaxIOutput(PID_OUTPUT_RANGE);
 	
-	float pitchInput, rollInput;
-	float pitchOutput, rollOutput;
+	float dP = 0.0;				//Current pitch angle rate of change from gyro (dps)
+	float dR = 0.0;
 	
-	PID pitchController(&pitchInput, &pitchOutput, &pitchAngleSetPoint, KP, KI, KD, P_ON_E, REVERSE);
-	pitchController.SetMode(0);
-	pitchController.SetOutputLimits(-PID_OUTPUT_RANGE, PID_OUTPUT_RANGE);
-	pitchController.SetSampleTime(updateRate_mS);
+	float rRateDesired = 0.0;
+	float pRateDesired = 0.0; 	//Desired pitch angle to achieve (deg)
 	
-	PID rollController(&rollInput, &rollOutput, &rollAngleSetPoint, KP, KI, KD, P_ON_E, REVERSE);
-	rollController.SetMode(0);
-	rollController.SetOutputLimits(-PID_OUTPUT_RANGE, PID_OUTPUT_RANGE);
-	rollController.SetSampleTime(updateRate_mS);
+	float pMotorCmd = 0.0; 		//Output motor command signal delta
+	float rMotorCmd = 0.0;
 	
+	/* Input: Current angle as measured from AHRS in degrees
+	 * Output: Desired rotation rate in dps*/
+//	PID pAngCtrl(&pAngIn, &pRateDesired, &pitchAngleSetPoint, ANGLE_KP, ANGLE_KI, ANGLE_KD, P_ON_E, REVERSE);
+//	
+//	pAngCtrl.SetMode(0);
+//	pAngCtrl.SetOutputLimits(-GYRO_SENSITIVITY, GYRO_SENSITIVITY);
+//	pAngCtrl.SetSampleTime(updateRate_mS);
 	
+	/* Input: Desired rotation rate in dps from pitch angle controller
+	 * Output: Motor command delta */
+	PID pRateCtrl(&dP, &pMotorCmd, &pRateDesired, RATE_KP, RATE_KI, RATE_KD, P_ON_E, REVERSE);
+	
+	pRateCtrl.SetMode(0);
+	pRateCtrl.SetOutputLimits(-MOTOR_OUTPUT_RANGE, MOTOR_OUTPUT_RANGE);
+	pRateCtrl.SetSampleTime(updateRate_mS);
+	
+	PID rRateCtrl(&dP, &rMotorCmd, &rRateDesired, RATE_KP, RATE_KI, RATE_KD, P_ON_E, REVERSE);
+	
+	rRateCtrl.SetMode(0);
+	rRateCtrl.SetOutputLimits(-MOTOR_OUTPUT_RANGE, MOTOR_OUTPUT_RANGE);
+	rRateCtrl.SetSampleTime(updateRate_mS);
 	
 	TickType_t lastTimeWoken = xTaskGetTickCount();
 	for (;;)
 	{
 		activeTask = PID_TASK;
 
-		/* Check for an update from the AHRS thread */
-		xSemaphoreTake(ahrsBufferMutex, 0);
-		while (uxQueueMessagesWaiting(qAHRS) > 0){ xQueueReceive(qAHRS, &ahrs, 0); }
-		xSemaphoreGive(ahrsBufferMutex);
-
+		/* Check for an update from the AHRS thread. This will always pull the latest information. */
+		if (xSemaphoreTake(ahrsBufferMutex, 0) == pdPASS)
+		{
+			xQueueReceive(qAHRS, &ahrs, 0);
+			xSemaphoreGive(ahrsBufferMutex);
+		}
+		
 		//TODO:
 		/* Check for an update from the radio for new set points */
 
-
-//		pidCMD.pitchControl = pitchAngleController.getOutput(ahrs.pitch, pitchAngleSetPoint);
-//		pidCMD.rollControl = rollAngleController.getOutput(ahrs.roll, rollAngleSetPoint);
-//		//pidCMD.yawControl = yawAngleController.getOutput(ahrs.yaw, yawAngleSetPoint);
-//
-//		//pidCMD.rollControl = 0;
-//		pidCMD.yawControl = 0;
 		
-		pitchInput = ahrs.pitch;
-		rollInput = ahrs.roll;
+		/* Calculate the desired rotation rate */
+		pRateDesired = pitchRateSetPoint;
+		dP = ahrs.gyro(0);
+		dR = ahrs.gyro(1);
 		
-		pitchController.Compute();
-		rollController.Compute();
+		pRateCtrl.Compute();
+		rRateCtrl.Compute();
 		
-		pidCMD.pitchControl = pitchOutput;
-		pidCMD.rollControl = rollOutput;
-		pidCMD.yawControl = 0;
-
+		pidCMD.pitchControl = pMotorCmd;
+		pidCMD.rollControl = rMotorCmd;
+		
 		/* Send data over to the motor controller thread without waiting for confirmation of success */
 		xQueueSendToBack(qPID, &pidCMD, 0);
 		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(updateRate_mS));
