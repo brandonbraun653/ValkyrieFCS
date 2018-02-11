@@ -28,13 +28,45 @@
 /* Madgwick Filter */
 #include "madgwick.hpp"
 
+/* Kalman Filter */
+//#include "SquareRootUnscentedKalmanFilter.hpp"
+#include "kalman/SquareRootUnscentedKalmanFilter.hpp"
+#include "IMUModel.hpp"
+
+typedef float T;
+
+typedef IMU::State<T> State;
+typedef IMU::Control<T> Control;
+typedef IMU::Measurement<T> Measurement;
+typedef IMU::SystemModel<T> SystemModel;
+typedef IMU::MeasurementModel<T> MeasurementModel;
+
+//True system state
+State x, x_ukf;
+//Control Input
+Control u;
+//System
+SystemModel sys;
+//Measurement Model
+MeasurementModel om;
+Measurement meas;
+
+Eigen::Matrix<T, 6, 6> R;
+Eigen::Matrix<T, 6, 6> processNoise;
+
+
+
+float accelUncertainty = 0.8f;
+float gyroUncertainty = 1.05f;
+
+
+//Estimation filter
+Kalman::SquareRootUnscentedKalmanFilter<State> ukf(0.5f, 3.0f, 0.0f);
+
+/*-----------------------------*/
+
 IMUData_t imuData;		/* Input struct to read from the IMU thread */
 AHRSDataDeg_t ahrsData;	/* Output struct to push to the motor controller thread */
-
-#define NUM_SAMPLES 1
-
-#define DEADBAND_ACCEL 0.5f
-#define DEADBAND_GYRO 0.5f
 
 const int updateRate_mS = (1.0 / SENSOR_UPDATE_FREQ_HZ) * 1000.0;
 const int magMaxUpdateRate_mS = (1.0 / LSM9DS1_M_MAX_BW) * 1000.0;
@@ -42,7 +74,75 @@ const int magMaxUpdateRate_mS = (1.0 / LSM9DS1_M_MAX_BW) * 1000.0;
 
 void ahrsTask(void* argument)
 {
-	/* Object allocation */
+	#ifdef DEBUG
+	volatile float pitch;
+	volatile float roll;
+	volatile float yaw;
+	volatile float ax;
+	volatile float ay;
+	volatile float az;
+	volatile float gx;
+	volatile float gy;
+	volatile float gz;
+	volatile float mx;
+	volatile float my;
+	volatile float mz;
+	#endif
+	
+	/*----------------------------------
+	* Initialize the UKF
+	*----------------------------------*/
+//	StateVector accelMeasurement;
+//	StateVector accelOutput;
+//	
+//	/* Set the state transition matrix A */
+//	ukf.A.setIdentity();
+//	
+//	/* Set the initial state vector */
+//	ukf.x.setZero();
+//	
+//	/* Set the measurment matrix H */
+//	ukf.H.setIdentity();
+	
+	
+	x.setZero();
+	u.setZero();
+	R.setZero();
+	
+	T cnst = 5.00e-4f;
+	T dnst = 3.33e-4f;
+	T enst = 5.00e-4f;
+
+	processNoise <<
+		cnst, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, dnst, 0.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, enst, 0.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, cnst, 0.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 0.0f, dnst, 0.0f,
+		0.0f, 0.0f, 0.0f, 0.0f, 0.0f, enst;
+	
+
+	sys.setCovariance(processNoise);
+	//sys.setCovarianceSquareRoot(processNoise);
+
+	R(0, 0) = accelUncertainty * accelUncertainty;
+	R(1, 1) = accelUncertainty * accelUncertainty;
+	R(2, 2) = accelUncertainty * accelUncertainty;
+	R(3, 3) = gyroUncertainty * gyroUncertainty;
+	R(4, 4) = gyroUncertainty * gyroUncertainty;
+	R(5, 5) = gyroUncertainty * gyroUncertainty;
+
+	om.setCovariance(R);
+
+	ukf.init(x);
+	
+	
+	
+	
+		
+	/*----------------------------------
+	* Initialize the IMU
+	*----------------------------------*/
 	GPIOClass_sPtr lsm_ss_xg = boost::make_shared<GPIOClass>(GPIOC, PIN_4, ULTRA_SPD, NOALTERNATE);
 	GPIOClass_sPtr lsm_ss_m = boost::make_shared<GPIOClass>(GPIOC, PIN_3, ULTRA_SPD, NOALTERNATE);
 	SPIClass_sPtr lsm_spi = spi2;
@@ -60,22 +160,18 @@ void ahrsTask(void* argument)
 	
 	
 	
-	
+	/*----------------------------------
+	* Initialize the Madgwick Filter
+	*----------------------------------*/
 	float beta = 10.0; //2.5 seems to work fairly well. 10.0 has a fantastic response time but is horrendously noisy.
-	float roll, pitch, yaw;
 	Eigen::Vector3f accel_raw, gyro_raw, mag_raw;
 	Eigen::Vector3f accel_filtered, gyro_filtered, mag_filtered, eulerDeg;
 	
 	MadgwickFilter ahrs((AHRS_UPDATE_RATE_MULTIPLIER * SENSOR_UPDATE_FREQ_HZ), beta);	
 	
 	float dt = (1.0f / SENSOR_UPDATE_FREQ_HZ);
-	float tau_accel = 0.1f;
-	float tau_gyro = 0.0025f; //400Hz
+	float tau_accel = 0.01f;
 	float alpha_lp_accel = dt / tau_accel;
-	float alpha_lp_gyro = dt / tau_gyro;
-	
-	float fc = 400.0f;
-	float alpha_hp = (1.0f / (2.0f*3.14159f*dt*fc + 1));
 	
 	accel_filtered << 0.0, 0.0, 0.0;
 	gyro_filtered << 0.0, 0.0, 0.0;
@@ -131,14 +227,24 @@ void ahrsTask(void* argument)
 			-imu.mRaw[2];  //from LSM9DS1, mag z is opposite direction of accel z
 			
 		
-
 		/*----------------------------
-		* Filtering 
+		* UKF Algorithm
 		*---------------------------*/
-		//Low Pass
-		accel_filtered += alpha_lp_accel * (accel_raw - accel_filtered);
-		gyro_filtered += alpha_lp_gyro * (gyro_raw - gyro_filtered);
+		//Simulate the system
+		x = sys.f(x, u);
+
+		//Predict state for current time step 
+		x_ukf = ukf.predict(sys);
+
+		//Take a measurement given system state
+		meas << accel_raw, gyro_raw;
 		
+		//Update the state equation given measurement
+		x_ukf = ukf.update(om, meas);
+
+	
+		accel_filtered << x_ukf.ax(), x_ukf.ay(), x_ukf.az();
+		gyro_filtered << x_ukf.gx(), x_ukf.gy(), x_ukf.gz();
 		mag_filtered = mag_raw;
 		
 		/*----------------------------
@@ -148,32 +254,28 @@ void ahrsTask(void* argument)
 		 * to achieve decent convergence to a stable value. This thread only runs when 
 		 * new data has arrived from the IMU, so frequency multiplication is as simple 
 		 * as looping 3-5 times here. */
-		taskENTER_CRITICAL();
-		
 		for (int i = 0; i < AHRS_UPDATE_RATE_MULTIPLIER; i++)
 			ahrs.update(accel_filtered, gyro_filtered, mag_filtered);
 		
 		ahrs.getEulerDeg(eulerDeg);											
 		ahrsData(eulerDeg, accel_filtered, gyro_filtered, mag_filtered);
 		
-		taskEXIT_CRITICAL();
-		
 		#ifdef DEBUG
-		float pitch = eulerDeg(0);
-		float roll = eulerDeg(1);
-		float yaw = eulerDeg(2);
+		pitch = eulerDeg(0);
+		roll = eulerDeg(1);
+		yaw = eulerDeg(2);
 		
-		float ax = accel_filtered(0);
-		float ay = accel_filtered(1);
-		float az = accel_filtered(2);
+		ax = accel_filtered(0);
+		ay = accel_filtered(1);
+		az = accel_filtered(2);
 		
-		float gx = gyro_filtered(0);
-		float gy = gyro_filtered(1);
-		float gz = gyro_filtered(2);
+		gx = gyro_filtered(0);
+		gy = gyro_filtered(1);
+		gz = gyro_filtered(2);
 		
-		float mx = mag_filtered(0);
-		float my = mag_filtered(1);
-		float mz = mag_filtered(2);
+		mx = mag_filtered(0);
+		my = mag_filtered(1);
+		mz = mag_filtered(2);
 		#endif
 		
 		/* Send data over to the PID thread, overwriting anything previously held */

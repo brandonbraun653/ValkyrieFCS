@@ -54,7 +54,7 @@ bool PID::Compute()
     float error = *mySetpoint - input;
     float dInput = (input - lastInput);
     outputSum+= (ki * error);
-
+	
     /*Add Proportional on Measurement, if P_ON_M is specified*/
     if(!pOnE) outputSum-= kp * dInput;
 
@@ -66,6 +66,8 @@ bool PID::Compute()
     if(pOnE) output = kp * error;
     else output = 0;
 
+	
+	
     /*Compute Rest of PID Output*/
     output += outputSum - kd * dInput;
 

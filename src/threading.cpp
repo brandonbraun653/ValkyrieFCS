@@ -7,7 +7,7 @@ QueueHandle_t qIMU = xQueueCreate(QUEUE_MINIMUM_SIZE, sizeof(IMUData_t));
 
 QueueHandle_t qAHRS = xQueueCreate(1, sizeof(AHRSDataDeg_t));
 
-QueueHandle_t qPID = xQueueCreate(QUEUE_MINIMUM_SIZE, sizeof(PIDData_t));
+QueueHandle_t qPID = xQueueCreate(1, sizeof(PIDData_t));
 
 QueueHandle_t qCommandBuffer = xQueueCreate(QUEUE_MINIMUM_SIZE, sizeof(CMDData_t));
 
@@ -16,7 +16,7 @@ QueueHandle_t qCommandBuffer = xQueueCreate(QUEUE_MINIMUM_SIZE, sizeof(CMDData_t
 * Semaphores and Mutexes
 *----------------------------------*/
 SemaphoreHandle_t ahrsBufferMutex = xSemaphoreCreateMutex();
-
+SemaphoreHandle_t pidBufferMutex = xSemaphoreCreateMutex();
 
 
 boost::container::vector<TaskHandle_t> TaskHandle(TOTAL_TASK_SIZE);

@@ -30,6 +30,8 @@ extern QueueHandle_t qCommandBuffer;	/* Handles external serial command inputs *
 extern SemaphoreHandle_t ahrsBufferMutex; /* Protects data passing between AHRS and PID loops when
 											 running at differing frequencies */
 
+extern SemaphoreHandle_t pidBufferMutex;  /* Protects data passing between PID and Motor control loops */
+
 enum TaskIndex
 {
 	AHRS_TASK,

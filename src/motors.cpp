@@ -23,23 +23,6 @@
 #include "motors.hpp"
 
 
-/*-------------------------------------------------
- *				Motor Orientation
- * Motor 1: TOP RIGHT		-- CCW
- * Motor 2: BOTTOM LEFT		-- CCW
- * Motor 3: TOP LEFT		-- CW
- * Motor 4: BOTTOM RIGHT	-- CW
- * 
- *
- *			M1  M2  M3  M4
- * +Pitch:	+	-	+	-
- * -Pitch:	-	+	-	+
- * +Roll:	-	+	+	-
- * -Roll:	+	-	-	+
- * 
- **/
-
-
 #define ESC_ARM 800
 #define ESC_MIN_THROTTLE 1060
 #define ESC_MAX_THROTTLE 1860
@@ -49,10 +32,12 @@ const uint16_t ARM_COMMAND = 0xFFFF;
 PIDData_t pidInput;
 MotorState MotorControllerState = MOTOR_STATE_OFF;
 
+const int updateRate_mS = (1.0f / PID_UPDATE_FREQ_HZ) * 1000.0f;
+
 
 /* Low pass filtering constants for pitch cmd input */
 float dt = (1.0f / PID_UPDATE_FREQ_HZ);
-float tau = 0.1f;
+float tau = 0.01f;
 float alpha_lp = dt / tau;
 
 void motorTask(void* argument)
@@ -60,7 +45,7 @@ void motorTask(void* argument)
 	ESCQuad_Init initStruct;
 	initStruct.armCMD_uS = ESC_ARM;
 	initStruct.minThrottleCMD_uS = ESC_MIN_THROTTLE;
-	initStruct.maxThrottleCMD_uS = 1400;
+	initStruct.maxThrottleCMD_uS = 1650;
 	initStruct.outputFrequency = 450.0;
 	
 	initStruct.motor1 = boost::make_shared<GPIOClass>(GPIOB, PIN_6, ULTRA_SPD, GPIO_AF2_TIM4);
@@ -83,64 +68,62 @@ void motorTask(void* argument)
 	
 	motorController.arm();
 	
-	//const float throttleRange = ESC_MAX_THROTTLE - ESC_MIN_THROTTLE;
-	const float throttleRange = initStruct.maxThrottleCMD_uS - initStruct.minThrottleCMD_uS;
 	
-	int dPitch = 0;
-	int dRoll = 0;
-	int dYaw = 0;
-	
-	int baseThrottle = initStruct.minThrottleCMD_uS + 50;
+	int baseThrottle = initStruct.minThrottleCMD_uS + 100;
 	
 	uint16_t m1 = baseThrottle;
 	uint16_t m2 = baseThrottle;
 	uint16_t m3 = baseThrottle;
 	uint16_t m4 = baseThrottle;
 	
-	float pRaw = 0.0, pFiltered = 0.0;
-	float rRaw = 0.0, rFiltered = 0.0;
+	#ifdef DEBUG
+	volatile uint16_t m1o, m2o, m3o, m4o;
+	#endif
+	
+	Eigen::Matrix<float, 4, 1> dummyVec1, dummyVec2, commandInputRaw, commandInputFiltered, motorOutput;
+	Eigen::Matrix4f motorMix;
+	
+	motorMix << 
+		1.0f,  1.0f,  1.0f, 0.0f,	//M1
+		1.0f, -1.0f, -1.0f, 0.0f,	//M2
+		1.0f,  1.0f, -1.0f, 0.0f,	//M3
+		1.0f, -1.0f,  1.0f, 0.0f;	//M4
+	
 	
 	TickType_t lastTimeWoken = xTaskGetTickCount();
 	for (;;)
 	{
 		activeTask = MOTOR_TASK;
 		
-		/* Block indefinitely until a new PID command has been issued */
-		xQueueReceive(qPID, &pidInput, portMAX_DELAY);
-		
-		/* There is a chance a lot of packets were missed, so make sure the latest is received.
-		 * TODO: In the pid loop, Change the queue size to 1 and always overwrite...*/
-		if (uxQueueMessagesWaiting(qPID) > 0)
+		/* Grab the latest PID command outputs */
+		if (xSemaphoreTake(pidBufferMutex, 0) == pdPASS)
 		{
-			while (uxQueueMessagesWaiting(qPID) > 0){ xQueueReceive(qPID, &pidInput, 0); }
+			xQueueReceive(qPID, &pidInput, 0);
+			xSemaphoreGive(pidBufferMutex);
+			
+			/* Low pass filter the input */
+			commandInputRaw << baseThrottle, pidInput.pitchControl, pidInput.rollControl, pidInput.yawControl;
+			commandInputFiltered += alpha_lp * (commandInputRaw - commandInputFiltered);
+			//commandInputRaw << baseThrottle, 0.0f, 0.0f, 0.0f;
 		}
-
 		
-		/* Try low pass filtering the input signal */
-		pFiltered += alpha_lp * (pidInput.pitchControl - pFiltered);
-		rFiltered += alpha_lp * (pidInput.rollControl - pFiltered);
-		
-		dPitch = pFiltered;
-		dRoll = rFiltered;
-		
-		
+	
 		/*-------------------------------------
-		 * Command Input Processing 
+		 * Things
 		 *------------------------------------*/
-		//TODO: Convert this to matrix multiplication
-		m1 = (uint16_t)(baseThrottle + dPitch); //+ (-dRoll));
-		m2 = (uint16_t)(baseThrottle - dPitch); //+   dRoll);
-		m3 = (uint16_t)(baseThrottle + dPitch); //+   dRoll);
-		m4 = (uint16_t)(baseThrottle - dPitch); //+ (-dRoll));
+		motorOutput = motorMix*commandInputFiltered;
 		
-		m1 = motorController.limit(m1);
-		m2 = motorController.limit(m2);
-		m3 = motorController.limit(m3);
-		m4 = motorController.limit(m4);
+		m1 = motorController.limit((uint16_t)motorOutput(0));
+		m2 = motorController.limit((uint16_t)motorOutput(1));
+		m3 = motorController.limit((uint16_t)motorOutput(2));
+		m4 = motorController.limit((uint16_t)motorOutput(3));
 		
 		/*-------------------------------------
 		 * Write Motors
 		 *------------------------------------*/
 		motorController.updateSetPoint(m1, m2, m3, m4);
+		
+		
+		vTaskDelayUntil(&lastTimeWoken, updateRate_mS);
 	}
 }
