@@ -66,7 +66,7 @@ Kalman::SquareRootUnscentedKalmanFilter<State> ukf(0.5f, 3.0f, 0.0f);
 /*-----------------------------*/
 
 IMUData_t imuData;		/* Input struct to read from the IMU thread */
-AHRSDataDeg_t ahrsData;	/* Output struct to push to the motor controller thread */
+AHRSData_t ahrsData;	/* Output struct to push to the motor controller thread */
 
 const int updateRate_mS = (1.0 / SENSOR_UPDATE_FREQ_HZ) * 1000.0;
 const int magMaxUpdateRate_mS = (1.0 / LSM9DS1_M_MAX_BW) * 1000.0;
@@ -92,19 +92,6 @@ void ahrsTask(void* argument)
 	/*----------------------------------
 	* Initialize the UKF
 	*----------------------------------*/
-//	StateVector accelMeasurement;
-//	StateVector accelOutput;
-//	
-//	/* Set the state transition matrix A */
-//	ukf.A.setIdentity();
-//	
-//	/* Set the initial state vector */
-//	ukf.x.setZero();
-//	
-//	/* Set the measurment matrix H */
-//	ukf.H.setIdentity();
-	
-	
 	x.setZero();
 	u.setZero();
 	R.setZero();
@@ -136,10 +123,7 @@ void ahrsTask(void* argument)
 
 	ukf.init(x);
 	
-	
-	
-	
-		
+
 	/*----------------------------------
 	* Initialize the IMU
 	*----------------------------------*/
@@ -282,6 +266,9 @@ void ahrsTask(void* argument)
 		xSemaphoreTake(ahrsBufferMutex, 2);
 		xQueueOverwrite(qAHRS, &ahrsData);
 		xSemaphoreGive(ahrsBufferMutex);
+		
+		/* Send data to the SD Card for logging */
+		xQueueSendToBack(qSD_AHRSData, &ahrsData, 0);
 		
 		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(updateRate_mS));
 	}

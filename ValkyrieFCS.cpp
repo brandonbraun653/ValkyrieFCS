@@ -30,16 +30,16 @@ int main(void)
 	
 	#ifdef DEBUG
 	InitializeSamplingProfiler();
-	//InitializeInstrumentingProfiler();
+	InitializeInstrumentingProfiler();
 	#endif 
 	
 	/* TODO: Add water mark functionality to the stack for each task */
 	
 	
-	//xTaskCreate(sdCardTask,		"sdTask",		2000,	NULL,	SDCARD_LOGGING_PRIORITY,	&TaskHandle[SDCARD_TASK]);
+	xTaskCreate(sdCardTask,		"sdTask",		2512,	NULL,	SDCARD_LOGGING_PRIORITY,	&TaskHandle[SDCARD_TASK]);
 	xTaskCreate(ahrsTask,		"ahrsTask",		8000,	NULL,	AHRS_UPDATE_PRIORITY,		&TaskHandle[AHRS_TASK]);
 	//xTaskCreate(consoleTask,	"cmdListener",	2000,	NULL,	CONSOLE_LOGGING_PRIORITY,	&TaskHandle[CONSOLE_TASK]);
-	//xTaskCreate(ledStatus,		"ledStatus",	512,	NULL,	STATUS_LEDS_PRIORITY,		&TaskHandle[LED_STATUS_TASK]);
+	xTaskCreate(ledStatus,		"ledStatus",	512,	NULL,	STATUS_LEDS_PRIORITY,		&TaskHandle[LED_STATUS_TASK]);
 	//xTaskCreate(radioTask,		"radio",		1000,	NULL,	RADIO_UPDATE_PRIORITY,		&TaskHandle[RADIO_TASK]);
 	xTaskCreate(motorTask,		"motor",		1000,	NULL,	MOTOR_UPDATE_PRIORITY,		&TaskHandle[MOTOR_TASK]);
 	//xTaskCreate(bluetoothTask,	"bluetooth",	1000,	NULL,	BLUETOOTH_PRIORITY,			&TaskHandle[BLUETOOTH_TASK]);

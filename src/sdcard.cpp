@@ -29,6 +29,13 @@ using namespace ThorDef::GPIO;
 
 uint32_t taskNotification = 0;
 
+uint32_t writeCount = 0;
+uint32_t maxWriteCount = 10000; //5 seconds
+
+
+void parseAHRSData(AHRSData_t& ahrs, SD_LOG_AHRS_t& sdlog);
+
+
 void sdCardTask(void* argument)
 {
 	/* Assign the object pointers */
@@ -48,70 +55,73 @@ void sdCardTask(void* argument)
 	error = sd->initialize();//true, FM_FAT32);
 	portEXIT_CRITICAL();
 	
-	IMUData_t logData;
-	size_t logDataSize = sizeof(logData);
-	uint32_t bytesWritten = 0, dummyWrite = 0;
+	AHRSData_t rawAHRSData;
+	SD_LOG_AHRS_t ahrsDataToLog;
+
+	ahrsDataToLog.euler_deg_pitch = 0.0f;
+	ahrsDataToLog.euler_deg_roll = 1.0f;
+	ahrsDataToLog.euler_deg_yaw = 2.0f;
+	ahrsDataToLog.accel_x = 3.0f;
+	ahrsDataToLog.accel_y = 4.0f;
+	ahrsDataToLog.accel_z = 5.0f;
+	ahrsDataToLog.gyro_x = 6.0f;
+	ahrsDataToLog.gyro_y = 7.0f;
+	ahrsDataToLog.gyro_z = 8.0f;
+	ahrsDataToLog.mag_x = 9.0f;
+	ahrsDataToLog.mag_y = 99.0f;
+	ahrsDataToLog.mag_z = 87.0f;
+		
+	uint32_t bytesWritten = 0;
 	
-	const char* testMessage = "Hello from the Valkyrie FCS board!!!";
+	error = sd->fopen("flightLog.dat", FA_CREATE_ALWAYS | FA_WRITE);
 	
-	//error = sd->fopen("dataFile", FA_CREATE_ALWAYS | FA_WRITE);
-	error = sd->fopen("FCSMessage.txt", FA_CREATE_ALWAYS | FA_WRITE);
-	error = sd->write((uint8_t*)testMessage, logDataSize, bytesWritten);
-	error = sd->fclose();
+	size_t t = sizeof(SD_LOG_AHRS_t);
 	
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 	for(;;)	
 	{
-		/* Check for some new notifications before continuing */
-		taskNotification = ulTaskNotifyTake(pdTRUE, 0);
+		/* Wake up only when we have new data */
+		xQueueReceive(qSD_AHRSData, &rawAHRSData, portMAX_DELAY);
 		
-		if (taskNotification != 0)
-		{
-			if (taskNotification == SD_CARD_SHUTDOWN)
-				break;
+	
+		
+		if (error == FR_OK && (writeCount < maxWriteCount))
+		{		
+			parseAHRSData(rawAHRSData, ahrsDataToLog);
 			
-			//do other stuff I guess
+			error = sd->write(reinterpret_cast<uint8_t*>(&ahrsDataToLog), sizeof(SD_LOG_AHRS_t), bytesWritten);
+			writeCount++;
+			
+			if (writeCount == maxWriteCount)
+			{
+				sd->fclose();
+				sd->deInitialize();
+				xTaskSendMessage(LED_STATUS_TASK, (LED_RED | LED_STATIC_ON));
+			}
 		}
-		
-//		if (error == FR_OK)
-//		{		
-//			/* Unfortunately this takes FOREVER to send a block of data...2-3mS AND it blocks
-//			 * all the other tasks from running!! */
-//			portENTER_CRITICAL();
-//			error = sd->write(reinterpret_cast<uint8_t*>(&logData), logDataSize, bytesWritten);
-//			portEXIT_CRITICAL();
-//		}
-		
-		/* Let others run */
-		taskYIELD();
-		
-		/* Error condition visual confirm fast led blink*/
-//		else
-//		{
-//			taskNotification = SD_CARD_SHUTDOWN;
-		
-		//DO error message things 
-//			ledPin->write(HIGH);
-//			vTaskDelay(pdMS_TO_TICKS(150));
-//			ledPin->write(LOW);
-//			vTaskDelay(pdMS_TO_TICKS(150));
-//			vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
-//		}
-		
-		/* Send the status of SD read/writes out to another task that solely handles 
-		 * blinking leds for the user. */
-		
 	}
-	
-	
-	if (taskNotification == SD_CARD_SHUTDOWN)
-	{
-		sd->fclose();
-		sd->deInitialize();
-	}
-	
 	
 	
 	/* Ensure a clean deletion of the task if we exit */
 	vTaskDelete(NULL);
+}
+
+
+void parseAHRSData(AHRSData_t& ahrs, SD_LOG_AHRS_t& sdlog)
+{
+	sdlog.euler_deg_pitch = ahrs.pitch();
+	sdlog.euler_deg_roll = ahrs.roll();
+	sdlog.euler_deg_yaw = ahrs.yaw();
+	
+	sdlog.accel_x = ahrs.ax();
+	sdlog.accel_y = ahrs.ay();
+	sdlog.accel_z = ahrs.az();
+	
+	sdlog.gyro_x = ahrs.gx();
+	sdlog.gyro_y = ahrs.gy();
+	sdlog.gyro_z = ahrs.gz();
+	
+	sdlog.mag_x = ahrs.mx();
+	sdlog.mag_y = ahrs.my();
+	sdlog.mag_z = ahrs.mz();
 }

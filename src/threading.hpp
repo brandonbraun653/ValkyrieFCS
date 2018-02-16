@@ -22,6 +22,8 @@ extern QueueHandle_t qIMU;		/* Buffers raw data from IMU for the AHRS algorithm 
 extern QueueHandle_t qAHRS;		/* Buffers processed AHRS data for the PID controller */
 extern QueueHandle_t qPID;		/* Buffers PID output data for the Motor controller */
 
+extern QueueHandle_t qSD_AHRSData;
+
 extern QueueHandle_t qCommandBuffer;	/* Handles external serial command inputs */
 
 /*----------------------------------
@@ -31,6 +33,8 @@ extern SemaphoreHandle_t ahrsBufferMutex; /* Protects data passing between AHRS 
 											 running at differing frequencies */
 
 extern SemaphoreHandle_t pidBufferMutex;  /* Protects data passing between PID and Motor control loops */
+
+extern SemaphoreHandle_t sdBufferMutex;
 
 enum TaskIndex
 {
@@ -51,7 +55,7 @@ extern boost::container::vector<TaskHandle_t> TaskHandle;
 extern TaskIndex activeTask; /* A simple debugging flag to check which task is currently running */
 
 /* Allows sending a notification message to any task from anywhere */
-extern BaseType_t xSendTaskMessage(const TaskIndex, const uint32_t);
-extern BaseType_t xSendTaskMessageFromISR(const TaskIndex, const uint32_t);
+extern BaseType_t xTaskSendMessage(const TaskIndex, const uint32_t);
+extern BaseType_t xTaskSendMessageFromISR(const TaskIndex, const uint32_t);
 
 #endif

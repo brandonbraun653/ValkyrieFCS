@@ -17,7 +17,7 @@
 
 const int updateRate_mS = (1.0f / PID_UPDATE_FREQ_HZ) * 1000.0f;
 
-AHRSDataDeg_t ahrs;	/* Input data from the AHRS algorithm */
+AHRSData_t ahrs;	/* Input data from the AHRS algorithm */
 PIDData_t pidCMD;	/* Output data from this thread */
 
 //TODO: Replace these with variables from the motor esc class...
@@ -37,7 +37,7 @@ float rollRateSetPoint = 0.0;
 #define ANGLE_KD 0.01f
 
 #define RATE_KP 0.9f
-#define RATE_KI 3.0f
+#define RATE_KI 4.0f
 #define RATE_KD 0.1f
 
 #define MOTOR_OUTPUT_RANGE 500.0f

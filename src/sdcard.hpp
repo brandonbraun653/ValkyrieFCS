@@ -4,13 +4,6 @@
 
 #include <stdint.h>
 
-
-enum SDCardInstructions
-{
-	SD_CARD_SHUTDOWN = 1
-	//OTHERS?
-};
-
 extern void sdCardTask(void* argument);
 
 
