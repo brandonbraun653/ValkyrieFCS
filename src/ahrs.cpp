@@ -65,8 +65,9 @@ Kalman::SquareRootUnscentedKalmanFilter<State> ukf(0.5f, 3.0f, 0.0f);
 
 /*-----------------------------*/
 
-IMUData_t imuData;		/* Input struct to read from the IMU thread */
-AHRSData_t ahrsData;	/* Output struct to push to the motor controller thread */
+IMUData_t imuData;				/* Input struct to read from the IMU thread */
+AHRSData_t ahrsData;			/* Output struct to push to the motor controller thread */
+SDLOG_AHRS_Minimal_t sd_ahrs;	/* Output struct for sd card logging */
 
 const int updateRate_mS = (1.0 / SENSOR_UPDATE_FREQ_HZ) * 1000.0;
 const int magMaxUpdateRate_mS = (1.0 / LSM9DS1_M_MAX_BW) * 1000.0;
@@ -157,14 +158,6 @@ void ahrsTask(void* argument)
 	float tau_accel = 0.01f;
 	float alpha_lp_accel = dt / tau_accel;
 	
-	accel_filtered << 0.0, 0.0, 0.0;
-	gyro_filtered << 0.0, 0.0, 0.0;
-	mag_filtered << 0.0, 0.0, 0.0;
-	
-	accel_raw << 0.0, 0.0, 0.0;
-	gyro_raw << 0.0, 0.0, 0.0;
-	mag_raw << 0.0, 0.0, 0.0;
-	
 	
 	TickType_t lastTimeWoken = xTaskGetTickCount();
 	for (;;)
@@ -198,17 +191,12 @@ void ahrsTask(void* argument)
 		/* Convert raw data from chip into meaningful data */
 		imu.calcAccel(); imu.calcGyro(); 
 		
-		/* Acceleration in m/s^2 */
 		accel_raw << imu.aRaw[0], imu.aRaw[1], imu.aRaw[2];
-		
-		/* Rotation Rate in dps */
 		gyro_raw  << imu.gRaw[0], imu.gRaw[1], imu.gRaw[2];
-		
-		/* Mag Field Strength in Gauss */
 		mag_raw   << 
-			-imu.mRaw[0],  //Align mag x with accel x
-			-imu.mRaw[1],  //Align mag y with accel y
-			-imu.mRaw[2];  //from LSM9DS1, mag z is opposite direction of accel z
+					-imu.mRaw[0],  //Align mag x with accel x
+					-imu.mRaw[1],  //Align mag y with accel y
+					-imu.mRaw[2];  //from LSM9DS1, mag z is opposite direction of accel z
 			
 		
 		/*----------------------------
@@ -262,14 +250,25 @@ void ahrsTask(void* argument)
 		mz = mag_filtered(2);
 		#endif
 		
-		/* Send data over to the PID thread, overwriting anything previously held */
+
+		/*----------------------------
+		* Data Post Processing
+		*---------------------------*/
+		/* Send data over to the PID thread*/
 		xSemaphoreTake(ahrsBufferMutex, 2);
 		xQueueOverwrite(qAHRS, &ahrsData);
 		xSemaphoreGive(ahrsBufferMutex);
 		
 		/* Send data to the SD Card for logging */
-		xQueueSendToBack(qSD_AHRSData, &ahrsData, 0);
+		sd_ahrs.tickTime = (uint32_t)xTaskGetTickCount();
+		sd_ahrs.euler_deg_pitch = ahrsData.pitch();
+		sd_ahrs.euler_deg_roll = ahrsData.roll();
+		sd_ahrs.euler_deg_yaw = ahrsData.yaw();
+
+		xQueueSendToBack(qSD_AHRSMinimal, &sd_ahrs, 0);
 		
+
+
 		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(updateRate_mS));
 	}
 }

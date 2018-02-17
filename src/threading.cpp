@@ -3,17 +3,17 @@
 /*----------------------------------
 * Queues
 *----------------------------------*/
+/* INTERTASK*/
 QueueHandle_t qIMU = xQueueCreate(QUEUE_MINIMUM_SIZE, sizeof(IMUData_t));
-
 QueueHandle_t qAHRS = xQueueCreate(1, sizeof(AHRSData_t));
-
 QueueHandle_t qPID = xQueueCreate(1, sizeof(PIDData_t));
 
 
-QueueHandle_t qSD_AHRSData = xQueueCreate(QUEUE_MINIMUM_SIZE, sizeof(AHRSData_t));
+/* SD CARD */
+QueueHandle_t qSD_AHRSFull = xQueueCreate(QUEUE_MINIMUM_SIZE, sizeof(SDLOG_AHRS_Full_t));
+QueueHandle_t qSD_AHRSMinimal = xQueueCreate(QUEUE_MINIMUM_SIZE, sizeof(SDLOG_AHRS_Minimal_t));
+QueueHandle_t qSD_Motor = xQueueCreate(QUEUE_MINIMUM_SIZE, sizeof(SDLOG_Motors_t));
 
-
-QueueHandle_t qCommandBuffer = xQueueCreate(QUEUE_MINIMUM_SIZE, sizeof(CMDData_t));
 
 
 /*----------------------------------
@@ -22,7 +22,7 @@ QueueHandle_t qCommandBuffer = xQueueCreate(QUEUE_MINIMUM_SIZE, sizeof(CMDData_t
 SemaphoreHandle_t ahrsBufferMutex = xSemaphoreCreateMutex();
 SemaphoreHandle_t pidBufferMutex = xSemaphoreCreateMutex();
 
-SemaphoreHandle_t sdBufferMutex = xSemaphoreCreateMutex();
+
 
 boost::container::vector<TaskHandle_t> TaskHandle(TOTAL_TASK_SIZE);
 TaskIndex activeTask;

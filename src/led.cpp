@@ -29,44 +29,38 @@ GPIOClass_sPtr armPin;
 GPIOClass_sPtr modePin;
 GPIOClass_sPtr errorPin;
 
-/*----------------------------------
-* Private Function Forward Declarations 
-*----------------------------------*/
-void parseTaskNotification(uint32_t notification);
-
-void ledStatus(void* argument)
+namespace FCS_LED
 {
-	armPin = boost::make_shared<GPIOClass>(GPIOC, PIN_8, ULTRA_SPD, NOALTERNATE);
-	modePin = boost::make_shared<GPIOClass>(GPIOC, PIN_7, ULTRA_SPD, NOALTERNATE); 
-	errorPin = boost::make_shared<GPIOClass>(GPIOC, PIN_6, ULTRA_SPD, NOALTERNATE); 
-	
-	/* Set up the GPIO Led */
-	armPin->mode(OUTPUT_PP);		armPin->write(LOW);
-	modePin->mode(OUTPUT_PP);		modePin->write(LOW);
-	errorPin->mode(OUTPUT_PP);		errorPin->write(LOW);
-	
-	
-	
-	TickType_t lastTimeWoken = xTaskGetTickCount();
-	for (;;)
+	void parseTaskNotification(uint32_t notification)
 	{
-		/* Check for some new notifications before continuing */
-		parseTaskNotification(ulTaskNotifyTake(pdTRUE, 0));
-		
-		
-		armPin->write(HIGH);
-		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(150));
-		armPin->write(LOW);
-		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(1000));
+		if (notification == (LED_RED | LED_STATIC_ON))
+			errorPin->write(HIGH);
 	}
-}
+
+	void ledStatus(void* argument)
+	{
+		armPin = boost::make_shared<GPIOClass>(GPIOC, PIN_8, ULTRA_SPD, NOALTERNATE);
+		modePin = boost::make_shared<GPIOClass>(GPIOC, PIN_7, ULTRA_SPD, NOALTERNATE);
+		errorPin = boost::make_shared<GPIOClass>(GPIOC, PIN_6, ULTRA_SPD, NOALTERNATE);
+
+		/* Set up the GPIO Led */
+		armPin->mode(OUTPUT_PP);		armPin->write(LOW);
+		modePin->mode(OUTPUT_PP);		modePin->write(LOW);
+		errorPin->mode(OUTPUT_PP);		errorPin->write(LOW);
 
 
-/*----------------------------------
-* Private Functions 
-*----------------------------------*/
-void parseTaskNotification(uint32_t notification)
-{
-	if (notification == (LED_RED | LED_STATIC_ON))
-		errorPin->write(HIGH);
+
+		TickType_t lastTimeWoken = xTaskGetTickCount();
+		for (;;)
+		{
+			/* Check for some new notifications before continuing */
+			parseTaskNotification(ulTaskNotifyTake(pdTRUE, 0));
+
+
+			armPin->write(HIGH);
+			vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(150));
+			armPin->write(LOW);
+			vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(1000));
+		}
+	}
 }

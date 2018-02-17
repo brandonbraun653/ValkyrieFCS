@@ -9,7 +9,42 @@
 /* Eigen Includes */
 #include "Eigen\Eigen"
 
+/*------------------------------
+* Intertask Notifications
+*-----------------------------*/
+enum SDCardInstructions
+{
+	SD_CARD_SHUTDOWN,
+	SD_CARD_ENABLE_IO,
+	SD_CARD_DISABLE_IO
+};
 
+enum LEDInstructions
+{
+	//Select which led to apply actions to
+	LED_BLUE = (1u << 31),
+	LED_YELLOW = (1u << 30),
+	LED_RED = (1u << 29),
+
+	//Available actions for each led
+	LED_STATIC_ON = (1U << 0),
+	LED_STATIC_OFF = (1U << 1),
+	LED_FLASH_SLOW = (1U << 2),
+	LED_FLASH_MED = (1U << 3),
+	LED_FLASH_FAST = (1U << 4)
+
+};
+
+enum PIDControllerInstructions
+{
+	PID_ENABLE,
+	PID_DISABLE
+};
+
+
+/*------------------------------
+* Intertask Data Passing
+*-----------------------------*/
 struct IMUData_t
 {
 	float ax, ay, az;	/* Accelerometer (X,Y,Z) */
@@ -17,7 +52,6 @@ struct IMUData_t
 	float mx, my, mz;	/* Magnetometer  (X,Y,Z) */
 	float mSTime;		/* Time stamp in mS */
 };
-
 
 struct AHRSData_t
 {
@@ -61,7 +95,6 @@ struct AHRSData_t
 	const float& mz() { return this->mag(2); }
 };
 
-
 struct PIDData_t
 {
 	float pitchControl = 0.0;
@@ -69,13 +102,6 @@ struct PIDData_t
 	float yawControl = 0.0;
 };
 
-struct CMDData_t
-{
-	uint8_t* rawPacket;
-	size_t rawPacketSize;
-	float rxTimeStamp;
-	uint8_t priority;
-};
 
 /*------------------------------
 * Radio
@@ -103,8 +129,20 @@ struct Radio_Request
 * SD Card 
 *-----------------------------*/
 #pragma pack(push,1)
-struct SD_LOG_AHRS_t
+struct SDLOG_FileHeader_t //Size must be limited to 512 bytes
+{
+	char message[100];
+	uint16_t sampleFrequency = 0;
+	uint16_t freeRTOSTickRate = configTICK_RATE_HZ;
+};
+#pragma pack(pop)
+
+
+#pragma pack(push,1)
+struct SDLOG_AHRS_Full_t
 {	
+	uint32_t tickTime = 0;
+
 	/* Degrees */
 	float euler_deg_pitch = 0.0;
 	float euler_deg_roll = 0.0;
@@ -128,27 +166,28 @@ struct SD_LOG_AHRS_t
 #pragma pack(pop)
 
 
-enum SDCardInstructions
+#pragma pack(push,1)
+struct SDLOG_AHRS_Minimal_t
 {
-	SD_CARD_SHUTDOWN = 1
-	//OTHERS?
-};
+	uint32_t tickTime = 0;
 
-enum LEDInstructions
+	/* Degrees */
+	float euler_deg_pitch = 0.0;
+	float euler_deg_roll = 0.0;
+	float euler_deg_yaw = 0.0;
+};
+#pragma pack(pop)
+
+
+#pragma pack(push,1)
+struct SDLOG_Motors_t
 {
-	//Select which led to apply actions to
-	LED_BLUE		= (1u << 31),
-	LED_YELLOW		= (1u << 30),
-	LED_RED			= (1u << 29),
-	
-	//Available actions for each led
-	LED_STATIC_ON	= (1U << 0),
-	LED_STATIC_OFF	= (1U << 1),
-	LED_FLASH_SLOW	= (1U << 2),
-	LED_FLASH_MED	= (1U << 3),
-	LED_FLASH_FAST	= (1U << 4)
-	
+	uint32_t tickTime = 0;
+	uint16_t m1 = 0;
+	uint16_t m2 = 0;
+	uint16_t m3 = 0;
+	uint16_t m4 = 0;
 };
-
+#pragma pack(pop)
 
 #endif 

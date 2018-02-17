@@ -29,7 +29,10 @@
 
 const uint16_t ARM_COMMAND = 0xFFFF;
 
-PIDData_t pidInput;
+PIDData_t pidInput;				/* Input struct for receiving pid commands */
+SDLOG_Motors_t sd_motorLog;		/* Output struct for logging motor commands */
+
+
 MotorState MotorControllerState = MOTOR_STATE_OFF;
 
 const int updateRate_mS = (1.0f / PID_UPDATE_FREQ_HZ) * 1000.0f;
@@ -66,7 +69,10 @@ void motorTask(void* argument)
 	motorController.initialize(initStruct);
 	//motorController.throttleCalibration();
 	
+	/* Arm the motors and inform the PID loop to start sending data */
 	motorController.arm();
+	xTaskSendMessage(PID_TASK, PID_ENABLE);
+	xTaskSendMessage(SDCARD_TASK, SD_CARD_ENABLE_IO);
 	
 	
 	int baseThrottle = initStruct.minThrottleCMD_uS + 100;
@@ -75,10 +81,6 @@ void motorTask(void* argument)
 	uint16_t m2 = baseThrottle;
 	uint16_t m3 = baseThrottle;
 	uint16_t m4 = baseThrottle;
-	
-	#ifdef DEBUG
-	volatile uint16_t m1o, m2o, m3o, m4o;
-	#endif
 	
 	Eigen::Matrix<float, 4, 1> dummyVec1, dummyVec2, commandInputRaw, commandInputFiltered, motorOutput;
 	Eigen::Matrix4f motorMix;
@@ -104,7 +106,6 @@ void motorTask(void* argument)
 			/* Low pass filter the input */
 			commandInputRaw << baseThrottle, pidInput.pitchControl, pidInput.rollControl, pidInput.yawControl;
 			commandInputFiltered += alpha_lp * (commandInputRaw - commandInputFiltered);
-			//commandInputRaw << baseThrottle, 0.0f, 0.0f, 0.0f;
 		}
 		
 	
@@ -123,7 +124,18 @@ void motorTask(void* argument)
 		 *------------------------------------*/
 		motorController.updateSetPoint(m1, m2, m3, m4);
 		
-		
+
+		/*----------------------------
+		* Data Post Processing
+		*---------------------------*/
+		sd_motorLog.tickTime = (uint32_t)xTaskGetTickCount();
+		sd_motorLog.m1 = m1;
+		sd_motorLog.m2 = m2;
+		sd_motorLog.m3 = m3;
+		sd_motorLog.m4 = m4;
+
+		xQueueSendToBack(qSD_Motor, &sd_motorLog, 0);
+
 		vTaskDelayUntil(&lastTimeWoken, updateRate_mS);
 	}
 }
