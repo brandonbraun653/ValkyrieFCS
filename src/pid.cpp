@@ -59,6 +59,10 @@ namespace FCSPID
 
 	void pidTask(void* argument)
 	{
+		SDLOG_PIDAngleInput_t angleControllerLog;
+		SDLOG_PIDRateInput_t rateControllerLog;
+		
+		
 		float pAngIn = 0.0;			//Current pitch angle from AHRS (deg)
 		float rAngIn = 0.0;
 
@@ -164,6 +168,20 @@ namespace FCSPID
 				xSemaphoreTake(pidBufferMutex, 2);
 				xQueueOverwrite(qPID, &pidCMD);
 				xSemaphoreGive(pidBufferMutex);
+				
+				
+				/* Push log data to the SDCard task */
+				angleControllerLog.tickTime = (uint32_t)xTaskGetTickCount();
+				angleControllerLog.pitch_angle_setpoint = (uint8_t)pitchAngleSetPoint;
+				angleControllerLog.roll_angle_setpoint = (uint8_t)rollAngleSetPoint;
+				angleControllerLog.yaw_angle_setpoint = (uint8_t)0;
+				xQueueSendToBack(qSD_PIDAngleSetpoint, &angleControllerLog, 0);
+				
+				rateControllerLog.tickTime = (uint32_t)xTaskGetTickCount();
+				rateControllerLog.pitch_rate_setpoint = (uint16_t)pRateDesired;
+				rateControllerLog.roll_rate_setpoint = (uint16_t)rRateDesired;
+				rateControllerLog.yaw_rate_setpoint = (uint16_t)0;
+				xQueueSendToBack(qSD_PIDRateSetpoint, &rateControllerLog, 0);
 			}
 
 			vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(updateRate_mS));

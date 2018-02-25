@@ -67,7 +67,8 @@ Kalman::SquareRootUnscentedKalmanFilter<State> ukf(0.5f, 3.0f, 0.0f);
 
 IMUData_t imuData;				/* Input struct to read from the IMU thread */
 AHRSData_t ahrsData;			/* Output struct to push to the motor controller thread */
-SDLOG_AHRS_Minimal_t sd_ahrs;	/* Output struct for sd card logging */
+SDLOG_AHRS_Minimal_t sd_ahrs_minimal;	/* Output struct for sd card logging */
+SDLOG_AHRS_Full_t sd_ahrs_full;
 
 const int updateRate_mS = (1.0 / SENSOR_UPDATE_FREQ_HZ) * 1000.0;
 const int magMaxUpdateRate_mS = (1.0 / LSM9DS1_M_MAX_BW) * 1000.0;
@@ -260,14 +261,27 @@ void ahrsTask(void* argument)
 		xSemaphoreGive(ahrsBufferMutex);
 		
 		/* Send data to the SD Card for logging */
-		sd_ahrs.tickTime = (uint32_t)xTaskGetTickCount();
-		sd_ahrs.euler_deg_pitch = ahrsData.pitch();
-		sd_ahrs.euler_deg_roll = ahrsData.roll();
-		sd_ahrs.euler_deg_yaw = ahrsData.yaw();
-
-		xQueueSendToBack(qSD_AHRSMinimal, &sd_ahrs, 0);
+		sd_ahrs_minimal.tickTime = (uint32_t)xTaskGetTickCount();
+		sd_ahrs_minimal.euler_deg_pitch = ahrsData.pitch();
+		sd_ahrs_minimal.euler_deg_roll = ahrsData.roll();
+		sd_ahrs_minimal.euler_deg_yaw = ahrsData.yaw();
+		xQueueSendToBack(qSD_AHRSMinimal, &sd_ahrs_minimal, 0);
 		
-
+		
+		sd_ahrs_full.tickTime = (uint32_t)xTaskGetTickCount();
+		sd_ahrs_full.euler_deg_pitch = ahrsData.pitch();
+		sd_ahrs_full.euler_deg_roll = ahrsData.roll();
+		sd_ahrs_full.euler_deg_yaw = ahrsData.yaw();
+		sd_ahrs_full.accel_x = ahrsData.ax();
+		sd_ahrs_full.accel_y = ahrsData.ay();
+		sd_ahrs_full.accel_z = ahrsData.az();
+		sd_ahrs_full.gyro_x = ahrsData.gx();
+		sd_ahrs_full.gyro_y = ahrsData.gy();
+		sd_ahrs_full.gyro_z = ahrsData.gz();
+		sd_ahrs_full.mag_x = ahrsData.mx();
+		sd_ahrs_full.mag_y = ahrsData.my();
+		sd_ahrs_full.mag_z = ahrsData.mz();
+		xQueueSendToBack(qSD_AHRSFull, &sd_ahrs_full, 0);
 
 		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(updateRate_mS));
 	}

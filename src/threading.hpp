@@ -26,6 +26,8 @@ extern QueueHandle_t qPID;		/* Buffers PID output data for the Motor controller 
 extern QueueHandle_t qSD_AHRSFull;
 extern QueueHandle_t qSD_AHRSMinimal;
 extern QueueHandle_t qSD_Motor;
+extern QueueHandle_t qSD_PIDAngleSetpoint;
+extern QueueHandle_t qSD_PIDRateSetpoint;
 
 
 /*----------------------------------

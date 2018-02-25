@@ -129,7 +129,7 @@ struct Radio_Request
 * SD Card 
 *-----------------------------*/
 #pragma pack(push,1)
-struct SDLOG_FileHeader_t //Size must be limited to 512 bytes
+struct SDLOG_FileHeader_t
 {
 	char message[100];
 	uint16_t sampleFrequency = 0;
@@ -187,6 +187,28 @@ struct SDLOG_Motors_t
 	uint16_t m2 = 0;
 	uint16_t m3 = 0;
 	uint16_t m4 = 0;
+};
+#pragma pack(pop)
+
+
+#pragma pack(push,1)
+struct SDLOG_PIDAngleInput_t
+{
+	uint32_t tickTime = 0;
+	uint8_t pitch_angle_setpoint = 0;
+	uint8_t roll_angle_setpoint = 0;
+	uint8_t yaw_angle_setpoint = 0;
+};
+#pragma pack(pop)
+
+
+#pragma pack(push,1)
+struct SDLOG_PIDRateInput_t
+{
+	uint32_t tickTime = 0;
+	uint16_t pitch_rate_setpoint = 0;
+	uint16_t roll_rate_setpoint = 0;
+	uint16_t yaw_rate_setpoint = 0;
 };
 #pragma pack(pop)
 

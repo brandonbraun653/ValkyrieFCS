@@ -30,37 +30,24 @@ using namespace ThorDef::GPIO;
 
 namespace FCS_SD
 {
-	const char* ahrsLogFilename = "ahrsLogMinimal.dat";
+	//const char* ahrsLogFilename = "ahrsLogMinimal.dat";
+	const char* ahrsLogFilename = "ahrsLogFull.dat";
 	const char* motorLogFilename = "motorLog.dat";
+	const char* pidAngleSetpointLogFilename = "angleSetpoints.dat";
+	const char* pidRateSetpointLogFilename = "rateSetpoints.dat";
+	
 	FIL ahrsLogFile;
 	FIL motorLogFile;
-
+	FIL pidAngleSetpointLogFile;
+	FIL pidRateSetpointLogFile;
+	
 	const int updateRate_mS = (1.0f / SDCARD_UPDATE_FREQ_HZ) * 1000.0f;
 
 
 	uint32_t writeCount = 0;
-	uint32_t maxWriteCount = 50000;
+	uint32_t maxWriteCount = 5000; //~3.5 min
 
 	bool loggerEnabled = false;
-
-	void parseAHRSData(AHRSData_t& ahrs, SDLOG_AHRS_Full_t& sdlog)
-	{
-		sdlog.euler_deg_pitch = ahrs.pitch();
-		sdlog.euler_deg_roll = ahrs.roll();
-		sdlog.euler_deg_yaw = ahrs.yaw();
-
-		sdlog.accel_x = ahrs.ax();
-		sdlog.accel_y = ahrs.ay();
-		sdlog.accel_z = ahrs.az();
-
-		sdlog.gyro_x = ahrs.gx();
-		sdlog.gyro_y = ahrs.gy();
-		sdlog.gyro_z = ahrs.gz();
-
-		sdlog.mag_x = ahrs.mx();
-		sdlog.mag_y = ahrs.my();
-		sdlog.mag_z = ahrs.mz();
-	}
 
 	void parseTaskNotification(uint32_t notification)
 	{
@@ -101,8 +88,14 @@ namespace FCS_SD
 		sd_spi->setSSMode(SS_MANUAL_CONTROL);
 		sd_spi->begin(EXTERNAL_SLAVE_SELECT);
 
+		
 		/* Initialize the SD Card */
+		#ifdef DEBUG
+		volatile FRESULT error = FR_OK;
+		#else
 		FRESULT error = FR_OK;
+		#endif
+		
 		portENTER_CRITICAL();
 		error = sd->initialize();//true, FM_FAT32);
 		portEXIT_CRITICAL();
@@ -110,18 +103,19 @@ namespace FCS_SD
 		SDLOG_AHRS_Full_t ahrsLogDataFull;
 		SDLOG_AHRS_Minimal_t ahrsLogDataMinimal;
 		SDLOG_Motors_t motorLogData;
+		SDLOG_PIDAngleInput_t pidAngleSetpoints;
+		SDLOG_PIDRateInput_t pidRateSetpoints;
 
 		uint32_t bytesWritten = 0;
 
 		/*-------------------------------------
 		* Set up the various files 
 		*------------------------------------*/
-		error = sd->fopen(ahrsLogFilename, FA_CREATE_ALWAYS | FA_WRITE, ahrsLogFile);
-		//Write the header argument here...
+		error = sd->fopen(ahrsLogFilename,				FA_CREATE_ALWAYS | FA_WRITE, ahrsLogFile);
+		error = sd->fopen(motorLogFilename,				FA_CREATE_ALWAYS | FA_WRITE, motorLogFile);
+		error = sd->fopen(pidAngleSetpointLogFilename,	FA_CREATE_ALWAYS | FA_WRITE, pidAngleSetpointLogFile);
+		error = sd->fopen(pidRateSetpointLogFilename,	FA_CREATE_ALWAYS | FA_WRITE, pidRateSetpointLogFile);
 		
-
-		error = sd->fopen(motorLogFilename, FA_CREATE_ALWAYS | FA_WRITE, motorLogFile);
-		//Write the header argument here...
 
 
 		TickType_t lastTimeWoken = xTaskGetTickCount();
@@ -133,8 +127,10 @@ namespace FCS_SD
 			{
 				if (error == FR_OK && (writeCount < maxWriteCount))
 				{
-					error = writeQueueToFile(sd, ahrsLogFile, qSD_AHRSMinimal, ahrsLogDataMinimal);
+					error = writeQueueToFile(sd, ahrsLogFile, qSD_AHRSFull, ahrsLogDataFull);
 					error = writeQueueToFile(sd, motorLogFile, qSD_Motor, motorLogData);
+					error = writeQueueToFile(sd, pidAngleSetpointLogFile, qSD_PIDAngleSetpoint, pidAngleSetpoints);
+					error = writeQueueToFile(sd, pidRateSetpointLogFile, qSD_PIDRateSetpoint, pidRateSetpoints);
 
 					writeCount++;
 				}
@@ -142,6 +138,8 @@ namespace FCS_SD
 				{
 					sd->fclose(ahrsLogFile);
 					sd->fclose(motorLogFile);
+					sd->fclose(pidAngleSetpointLogFile);
+					sd->fclose(pidRateSetpointLogFile);
 
 					sd->deInitialize();
 					xTaskSendMessage(LED_STATUS_TASK, (LED_RED | LED_STATIC_ON));
