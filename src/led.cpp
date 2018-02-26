@@ -39,6 +39,10 @@ namespace FCS_LED
 
 	void ledStatus(void* argument)
 	{
+		#ifdef DEBUG
+		volatile UBaseType_t stackHighWaterMark_LEDSTATUS = 0;
+		#endif
+		
 		armPin = boost::make_shared<GPIOClass>(GPIOC, PIN_8, ULTRA_SPD, NOALTERNATE);
 		modePin = boost::make_shared<GPIOClass>(GPIOC, PIN_7, ULTRA_SPD, NOALTERNATE);
 		errorPin = boost::make_shared<GPIOClass>(GPIOC, PIN_6, ULTRA_SPD, NOALTERNATE);
@@ -47,16 +51,25 @@ namespace FCS_LED
 		armPin->mode(OUTPUT_PP);		armPin->write(LOW);
 		modePin->mode(OUTPUT_PP);		modePin->write(LOW);
 		errorPin->mode(OUTPUT_PP);		errorPin->write(LOW);
-
-
-
+		
+		
+		/* Tell init task that this thread's initialization is done and ok to run.
+		 * Wait for init task to resume operation. */
+		xTaskSendMessage(INIT_TASK, 1u);
+		vTaskSuspend(NULL);
+		taskYIELD();
+		
 		TickType_t lastTimeWoken = xTaskGetTickCount();
 		for (;;)
 		{
+			#ifdef DEBUG
+			activeTask = LED_STATUS_TASK;
+			stackHighWaterMark_LEDSTATUS = uxTaskGetStackHighWaterMark(NULL);
+			#endif
+			
 			/* Check for some new notifications before continuing */
 			parseTaskNotification(ulTaskNotifyTake(pdTRUE, 0));
-
-
+			
 			armPin->write(HIGH);
 			vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(150));
 			armPin->write(LOW);

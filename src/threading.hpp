@@ -41,6 +41,7 @@ extern SemaphoreHandle_t pidBufferMutex;  /* Protects data passing between PID a
 
 enum TaskIndex
 {
+	INIT_TASK,
 	AHRS_TASK,
 	SENSOR_TASK,
 	MOTOR_TASK,

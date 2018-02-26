@@ -14,31 +14,31 @@
 *-----------------------------*/
 enum SDCardInstructions
 {
-	SD_CARD_SHUTDOWN,
-	SD_CARD_ENABLE_IO,
-	SD_CARD_DISABLE_IO
+	SD_CARD_SHUTDOWN	= (1U << 1),
+	SD_CARD_ENABLE_IO	= (1U << 2),
+	SD_CARD_DISABLE_IO	= (1U << 3)
 };
 
 enum LEDInstructions
 {
 	//Select which led to apply actions to
-	LED_BLUE = (1u << 31),
-	LED_YELLOW = (1u << 30),
-	LED_RED = (1u << 29),
+	LED_BLUE	= (1U << 31),
+	LED_YELLOW	= (1U << 30),
+	LED_RED		= (1U << 29),
 
 	//Available actions for each led
-	LED_STATIC_ON = (1U << 0),
-	LED_STATIC_OFF = (1U << 1),
-	LED_FLASH_SLOW = (1U << 2),
-	LED_FLASH_MED = (1U << 3),
-	LED_FLASH_FAST = (1U << 4)
+	LED_STATIC_ON	= (1U << 1),
+	LED_STATIC_OFF	= (1U << 2),
+	LED_FLASH_SLOW	= (1U << 3),
+	LED_FLASH_MED	= (1U << 4),
+	LED_FLASH_FAST	= (1U << 5)
 
 };
 
 enum PIDControllerInstructions
 {
-	PID_ENABLE,
-	PID_DISABLE
+	PID_ENABLE	= (1U << 1),
+	PID_DISABLE = (1U << 2)
 };
 
 

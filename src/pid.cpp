@@ -25,12 +25,7 @@ const float minPWR = 1060.0f;
 const float maxPWR = 1860.0f;
 const float outRng = maxPWR - minPWR;
 
-float rollAngleSetPoint = 0.0;	//deg
-float pitchAngleSetPoint = 0.0;	//deg
-float yawAngleSetPoint = 0.0;	//deg => eventually put this in the Radio task (process signals)
 
-float pitchRateSetPoint = 0.0;
-float rollRateSetPoint = 0.0;
 
 bool pidEnabled = false;
 
@@ -45,8 +40,10 @@ bool pidEnabled = false;
 #define MOTOR_OUTPUT_RANGE 500.0f
 #define GYRO_SENSITIVITY 2000 //dps
 
+#define STEP_DELAY_TIME_MS 5000
 
-namespace FCSPID
+
+namespace FCS_PID
 {
 	void parseTaskNotification(uint32_t notification)
 	{
@@ -59,22 +56,38 @@ namespace FCSPID
 
 	void pidTask(void* argument)
 	{
+		#ifdef DEBUG
+		volatile UBaseType_t stackHighWaterMark_PID = 0;
+		#endif
+		
+		const int numSteps = 17;
+		uint32_t lastTime = 0;
+		int currentStep = 0;
+		bool steppingRoll = true;
+		bool steppingEnabled = true;
+		bool signalRecordingStop = false;
+		const float rollStep[] = { 0.0, 5.0, 10.0, 15.0, 20.0, 15.0, 10.0, 5.0, 0.0, -5.0, -10.0, -15.0, -20.0, -15.0, -10.0 - 5.0, 0.0 };
+		const float pitchStep[] = { 0.0, 5.0, 10.0, 15.0, 20.0, 15.0, 10.0, 5.0, 0.0, -5.0, -10.0, -15.0, -20.0, -15.0, -10.0 - 5.0, 0.0 };
+
 		SDLOG_PIDAngleInput_t angleControllerLog;
 		SDLOG_PIDRateInput_t rateControllerLog;
 		
 		
-		float pAngIn = 0.0;			//Current pitch angle from AHRS (deg)
-		float rAngIn = 0.0;
+		float pAngleDesired = 0.0;	//Desired pitch angle to achieve (deg)
+		float rAngleDesired = 0.0;
 
-		float dP = 0.0;				//Current pitch angle rate of change from gyro (dps)
-		float dR = 0.0;
+		float pRateDesired = 0.0;	//Desired pitch rotation rate to achieve (deg)
+		float rRateDesired = 0.0;
 
-		float rRateDesired = 0.0;	//Desired pitch angle to achieve (deg)
-		float pRateDesired = 0.0;
+		float pAngFB = 0.0;			//Current pitch angle from AHRS (deg)
+		float rAngFB = 0.0;
+
+		float pRateFB = 0.0;		//Current pitch angle rate of change from gyro (dps)
+		float rRateFB = 0.0;
 
 		float pMotorCmd = 0.0; 		//Output motor command signal delta
 		float rMotorCmd = 0.0;
-
+		
 
 		/*-------------------------------------------------------
 		* ANGLE PID CONTROLLER
@@ -83,8 +96,8 @@ namespace FCSPID
 		*
 		*
 		*------------------------------------------------------*/
-		PID pAngCtrl(&pAngIn, &pRateDesired, &pitchAngleSetPoint, ANGLE_KP, ANGLE_KI, ANGLE_KD, P_ON_E, REVERSE);
-		PID rAngCtrl(&rAngIn, &rRateDesired, &rollAngleSetPoint, ANGLE_KP, ANGLE_KI, ANGLE_KD, P_ON_E, DIRECT);
+		PID pAngCtrl(&pAngFB, &pRateDesired, &pAngleDesired, ANGLE_KP, ANGLE_KI, ANGLE_KD, P_ON_E, REVERSE);
+		PID rAngCtrl(&rAngFB, &rRateDesired, &rAngleDesired, ANGLE_KP, ANGLE_KI, ANGLE_KD, P_ON_E, DIRECT);
 
 		pAngCtrl.SetMode(0);
 		pAngCtrl.SetOutputLimits(-100.0f, 100.0f);
@@ -102,8 +115,8 @@ namespace FCSPID
 		*
 		* Positive error signal yields negative output when in DIRECT mode
 		*------------------------------------------------------*/
-		PID pRateCtrl(&dP, &pMotorCmd, &pRateDesired, RATE_KP, RATE_KI, RATE_KD, P_ON_E, DIRECT);
-		PID rRateCtrl(&dR, &rMotorCmd, &rRateDesired, RATE_KP, RATE_KI, RATE_KD, P_ON_E, DIRECT);
+		PID pRateCtrl(&pRateFB, &pMotorCmd, &pRateDesired, RATE_KP, RATE_KI, RATE_KD, P_ON_E, DIRECT);
+		PID rRateCtrl(&rRateFB, &rMotorCmd, &rRateDesired, RATE_KP, RATE_KI, RATE_KD, P_ON_E, DIRECT);
 
 
 		pRateCtrl.SetMode(0);
@@ -113,11 +126,22 @@ namespace FCSPID
 		rRateCtrl.SetMode(0);
 		rRateCtrl.SetOutputLimits(-MOTOR_OUTPUT_RANGE, MOTOR_OUTPUT_RANGE);
 		rRateCtrl.SetSampleTime(updateRate_mS);
-
+		
+		/* Tell init task that this thread's initialization is done and ok to run.
+		 * Wait for init task to resume operation. */
+		xTaskSendMessage(INIT_TASK, 1u);
+		vTaskSuspend(NULL);
+		taskYIELD();
+		
 		TickType_t lastTimeWoken = xTaskGetTickCount();
+		lastTime = xTaskGetTickCount();
 		for (;;)
 		{
+			#ifdef DEBUG
 			activeTask = PID_TASK;
+			stackHighWaterMark_PID = uxTaskGetStackHighWaterMark(NULL);
+			#endif
+			
 			parseTaskNotification(ulTaskNotifyTake(pdTRUE, 0));
 
 			if (pidEnabled)
@@ -129,31 +153,69 @@ namespace FCSPID
 					xSemaphoreGive(ahrsBufferMutex);
 				}
 
-				//TODO:
-				/* Check for an update from the radio for new set points */
-
 				/*--------------------------------------
 				* Calculate the desired rotation rate
 				*--------------------------------------*/
+				/* Update the desired angle to achieve */
+				if (steppingEnabled)
+				{
+					if (((uint32_t)xTaskGetTickCount() - lastTime) >= STEP_DELAY_TIME_MS)
+					{
+						lastTime = (uint32_t)xTaskGetTickCount();
+
+						if (steppingRoll)
+							rAngleDesired = rollStep[currentStep];
+						else
+							pAngleDesired = pitchStep[currentStep];
+
+						++currentStep;
+						if ((currentStep == numSteps) && steppingRoll)
+						{
+							currentStep = 0;
+							rAngleDesired = 0.0;
+							steppingRoll = false;	//Switch over to pitch
+						}
+
+						if ((currentStep == numSteps) && !steppingRoll)
+						{
+							currentStep = 0;
+							rAngleDesired = 0.0;
+							pAngleDesired = 0.0;
+							steppingEnabled = false; //Break out of the stepping stuff
+							signalRecordingStop = true;
+						}
+					}
+				}
+
+				if (signalRecordingStop && (((uint32_t)xTaskGetTickCount() - lastTime) >= STEP_DELAY_TIME_MS))
+				{
+					signalRecordingStop = false;
+					xTaskSendMessage(SDCARD_TASK, SD_CARD_SHUTDOWN);
+				}
+				
+
+
 				//Update the inputs
-				pAngIn = ahrs.eulerAngles(0);
-				rAngIn = ahrs.eulerAngles(1);
+				pAngFB = ahrs.eulerAngles(0);
+				rAngFB = ahrs.eulerAngles(1);
 
 				pAngCtrl.Compute();
 				rAngCtrl.Compute();
 
 				#ifdef DEBUG
-				float pRateOutput = pRateDesired;
-				float rRateOutput = rRateDesired;
+				volatile float pitchAngleSetpoint = pAngleDesired;
+				volatile float rollAngleSetpoint = rAngleDesired;
+				volatile float pRateOutput = pRateDesired;
+				volatile float rRateOutput = rRateDesired;
 				#endif
 
 				/*--------------------------------------
 				* Calculate the motor command outputs
 				*--------------------------------------*/
-				dP = ahrs.gyro(1);	/* Pitch Rotation Axis: Sensor Y-Axis
+				pRateFB = ahrs.gyro(1);	/* Pitch Rotation Axis: Sensor Y-Axis
 									* Increasing Body Pitch Angle ==> ++Pitch Rate (CW Rotation About Sensor Y)*/
 
-				dR = -ahrs.gyro(0); /* Roll Rotation Axis: Sensor X-Axis
+				rRateFB = -ahrs.gyro(0); /* Roll Rotation Axis: Sensor X-Axis
 									* Increasing Body Roll Angle ==> --Roll Rate (CCW Rotation About Sensor X)
 									*
 									* FIX: Multiply by -1 so that increasing roll angle yields increasing rotation rate */
@@ -172,8 +234,8 @@ namespace FCSPID
 				
 				/* Push log data to the SDCard task */
 				angleControllerLog.tickTime = (uint32_t)xTaskGetTickCount();
-				angleControllerLog.pitch_angle_setpoint = (uint8_t)pitchAngleSetPoint;
-				angleControllerLog.roll_angle_setpoint = (uint8_t)rollAngleSetPoint;
+				angleControllerLog.pitch_angle_setpoint = (uint8_t)pAngleDesired;
+				angleControllerLog.roll_angle_setpoint = (uint8_t)rAngleDesired;
 				angleControllerLog.yaw_angle_setpoint = (uint8_t)0;
 				xQueueSendToBack(qSD_PIDAngleSetpoint, &angleControllerLog, 0);
 				

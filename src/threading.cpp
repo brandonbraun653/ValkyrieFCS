@@ -30,10 +30,16 @@ TaskIndex activeTask;
 
 BaseType_t xTaskSendMessage(TaskIndex idx, uint32_t msg)
 {
-	return xTaskNotify(TaskHandle[idx], msg, eSetValueWithOverwrite);
+	if (TaskHandle[idx])
+		return xTaskNotify(TaskHandle[idx], msg, eSetValueWithOverwrite);
+	else
+		return pdFAIL;
 }
 
 BaseType_t xTaskSendMessageFromISR(TaskIndex idx, uint32_t msg)
 {
-	return xTaskNotifyFromISR(TaskHandle[idx], msg, eSetValueWithOverwrite, NULL);
+	if (TaskHandle[idx])
+		return xTaskNotifyFromISR(TaskHandle[idx], msg, eSetValueWithOverwrite, NULL);
+	else
+		return pdFAIL;
 }

@@ -2,16 +2,10 @@
 #ifndef MOTORS_HPP_
 #define MOTORS_HPP_
 
-enum MotorState
+namespace FCS_MOTOR
 {
-	MOTOR_STATE_OFF,
-	MOTOR_STATE_ARM,
-	MOTOR_STATE_IDLE,
-	MOTOR_STATE_KILL
-};
-extern MotorState MotorControllerState;
-
-extern void motorTask(void* argument);
+	extern void motorTask(void* argument);
+}
 
 
 #endif /* MOTORS_HPP_ */
