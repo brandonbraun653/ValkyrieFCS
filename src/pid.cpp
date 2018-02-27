@@ -190,7 +190,7 @@ namespace FCS_PID
 				if (signalRecordingStop && (((uint32_t)xTaskGetTickCount() - lastTime) >= STEP_DELAY_TIME_MS))
 				{
 					signalRecordingStop = false;
-					xTaskSendMessage(SDCARD_TASK, SD_CARD_SHUTDOWN);
+					//xTaskSendMessage(SDCARD_TASK, SD_CARD_SHUTDOWN);
 				}
 				
 

@@ -47,7 +47,7 @@ namespace FCS_SD
 
 
 	uint32_t writeCount = 0;
-	uint32_t maxWriteCount = 1000;
+	uint32_t maxWriteCount = 60000;
 
 	bool loggerEnabled = false;
 	bool cleanlyExit = false;
