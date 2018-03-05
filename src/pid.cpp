@@ -40,8 +40,6 @@ bool pidEnabled = false;
 #define MOTOR_OUTPUT_RANGE 500.0f
 #define GYRO_SENSITIVITY 2000 //dps
 
-#define STEP_DELAY_TIME_MS 5000
-
 
 namespace FCS_PID
 {
@@ -60,14 +58,50 @@ namespace FCS_PID
 		volatile UBaseType_t stackHighWaterMark_PID = 0;
 		#endif
 		
-		const int numSteps = 17;
+		/* Uncomment these for 5 degree stepping: UNCOUPLED */
+// 		const float rollStep[] = {	
+// 			0.0, 5.0, 10.0, 15.0, 20.0, 15.0, 10.0, 5.0, 0.0, -5.0, -10.0, -15.0, -20.0, -15.0, -10.0, -5.0, 0.0,  
+// 			0.0, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0, 0.0, 0.0,  0.0,   0.0,   0.0,   0.0,   0.0,   0.0,  0.0, 0.0 };
+// 
+// 		const float pitchStep[] = { 
+// 			0.0, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0, 0.0, 0.0,  0.0,   0.0,   0.0,   0.0,   0.0,   0.0,  0.0, 0.0,
+// 			0.0, 5.0, 10.0, 15.0, 20.0, 15.0, 10.0, 5.0, 0.0, -5.0, -10.0, -15.0, -20.0, -15.0, -10.0, -5.0, 0.0 };
+
+		/* Uncomment these for 10 degree stepping: UNCOUPLED */
+// 		const float rollStep[]  = { 0.0, 10.0, 20.0, 10.0, 0.0, 10.0, 20.0, 10.0, 0.0,  -10.0, -20.0, -10.0, 0.0, -10.0, -20.0, -10.0, 0.0,
+// 									0.0,  0.0,  0.0,  0.0, 0.0,  0.0,  0.0, 0.0,  0.0,    0.0,   0.0,   0.0, 0.0,   0.0,   0.0,   0.0, 0.0 };
+// 
+// 		const float pitchStep[] = { 0.0,  0.0,  0.0,  0.0, 0.0,  0.0,  0.0, 0.0,  0.0,    0.0,   0.0,   0.0, 0.0,   0.0,   0.0,   0.0, 0.0,
+// 									0.0, 10.0, 20.0, 10.0, 0.0, 10.0, 20.0, 10.0, 0.0,  -10.0, -20.0, -10.0, 0.0, -10.0, -20.0, -10.0, 0.0 };
+
+		/* Uncomment these for 15 degree stepping: UNCOUPLED */
+// 		const float rollStep[]  = { 0.0, 15.0, 0.0, 15.0, 0.0, -15.0, 0.0, -15.0, 0.0,  0.0,   0.0,   0.0, 0.0,   0.0,   0.0,   0.0, 0.0 };
+// 		const float pitchStep[] = { 0.0,  0.0, 0.0,  0.0, 0.0,   0.0, 0.0,   0.0, 0.0, 15.0,   0.0,  15.0, 0.0, -15.0,   0.0, -15.0, 0.0 };
+
+		/* Uncomment these for 5 degree stepping: COUPLED */
+// 		const float rollStep[]  = { 0.0, 5.0, 10.0, 15.0, 10.0, 5.0, 0.0, -5.0, -10.0, -15.0, -10.0, -5.0, 0.0 };
+// 		const float pitchStep[] = { 0.0, 5.0, 10.0, 15.0, 10.0, 5.0, 0.0, -5.0, -10.0, -15.0, -10.0, -5.0, 0.0 };
+
+		/* Uncomment these for 10 degree stepping: COUPLED */
+// 		const float rollStep[]  = { 0.0, 10.0, 0.0, 10.0, 0.0, -10.0, 0.0, -10.0, 0.0 };
+// 		const float pitchStep[] = { 0.0, 10.0, 0.0, 10.0, 0.0, -10.0, 0.0, -10.0, 0.0 };
+
+		/* Uncomment these for 15 degree stepping: COUPLED */
+// 		const float rollStep[]  = { 0.0, 15.0, 0.0, 15.0, 0.0, -15.0, 0.0, -15.0, 0.0 };
+// 		const float pitchStep[] = { 0.0, 15.0, 0.0, 15.0, 0.0, -15.0, 0.0, -15.0, 0.0 };
+
+		/* Uncomment these for manual poking (super scientific, I know) */
+		const float rollStep[]  = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+		const float pitchStep[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+
+
+		const int numSteps = sizeof(rollStep) / sizeof(rollStep[0]);
 		uint32_t lastTime = 0;
 		int currentStep = 0;
-		bool steppingRoll = true;
 		bool steppingEnabled = true;
 		bool signalRecordingStop = false;
-		const float rollStep[] = { 0.0, 5.0, 10.0, 15.0, 20.0, 15.0, 10.0, 5.0, 0.0, -5.0, -10.0, -15.0, -20.0, -15.0, -10.0 - 5.0, 0.0 };
-		const float pitchStep[] = { 0.0, 5.0, 10.0, 15.0, 20.0, 15.0, 10.0, 5.0, 0.0, -5.0, -10.0, -15.0, -20.0, -15.0, -10.0 - 5.0, 0.0 };
+		int STEP_DELAY_TIME_MS = 5000;
+
 
 		SDLOG_PIDAngleInput_t angleControllerLog;
 		SDLOG_PIDRateInput_t rateControllerLog;
@@ -157,45 +191,35 @@ namespace FCS_PID
 				* Calculate the desired rotation rate
 				*--------------------------------------*/
 				/* Update the desired angle to achieve */
-				if (steppingEnabled)
+				if (steppingEnabled && (((uint32_t)xTaskGetTickCount() - lastTime) >= STEP_DELAY_TIME_MS))
 				{
-					if (((uint32_t)xTaskGetTickCount() - lastTime) >= STEP_DELAY_TIME_MS)
+					lastTime = (uint32_t)xTaskGetTickCount();
+
+					rAngleDesired = rollStep[currentStep];
+					pAngleDesired = pitchStep[currentStep];
+
+
+					++currentStep;
+
+
+					if (currentStep == numSteps)
 					{
-						lastTime = (uint32_t)xTaskGetTickCount();
-
-						if (steppingRoll)
-							rAngleDesired = rollStep[currentStep];
-						else
-							pAngleDesired = pitchStep[currentStep];
-
-						++currentStep;
-						if ((currentStep == numSteps) && steppingRoll)
-						{
-							currentStep = 0;
-							rAngleDesired = 0.0;
-							steppingRoll = false;	//Switch over to pitch
-						}
-
-						if ((currentStep == numSteps) && !steppingRoll)
-						{
-							currentStep = 0;
-							rAngleDesired = 0.0;
-							pAngleDesired = 0.0;
-							steppingEnabled = false; //Break out of the stepping stuff
-							signalRecordingStop = true;
-						}
+						currentStep = 0;
+						rAngleDesired = 0.0;
+						pAngleDesired = 0.0;
+						steppingEnabled = false;
+						signalRecordingStop = true;
 					}
 				}
 
 				if (signalRecordingStop && (((uint32_t)xTaskGetTickCount() - lastTime) >= STEP_DELAY_TIME_MS))
 				{
 					signalRecordingStop = false;
-					//xTaskSendMessage(SDCARD_TASK, SD_CARD_SHUTDOWN);
+					xTaskSendMessage(SDCARD_TASK, SD_CARD_SHUTDOWN);
 				}
 				
 
-
-				//Update the inputs
+				/* Update the inputs to the angle control loop*/
 				pAngFB = ahrs.eulerAngles(0);
 				rAngFB = ahrs.eulerAngles(1);
 
@@ -203,6 +227,8 @@ namespace FCS_PID
 				rAngCtrl.Compute();
 
 				#ifdef DEBUG
+				volatile float pangf = pAngFB;
+				volatile float rangf = rAngFB;
 				volatile float pitchAngleSetpoint = pAngleDesired;
 				volatile float rollAngleSetpoint = rAngleDesired;
 				volatile float pRateOutput = pRateDesired;
