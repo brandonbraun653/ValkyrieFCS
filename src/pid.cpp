@@ -25,17 +25,7 @@ const float minPWR = 1060.0f;
 const float maxPWR = 1860.0f;
 const float outRng = maxPWR - minPWR;
 
-
-
 bool pidEnabled = false;
-
-#define ANGLE_KP 2.5f
-#define ANGLE_KI 3.0f
-#define ANGLE_KD 0.01f
-
-#define RATE_KP 0.9f
-#define RATE_KI 4.0f
-#define RATE_KD 0.05f
 
 #define MOTOR_OUTPUT_RANGE 500.0f
 #define GYRO_SENSITIVITY 2000 //dps
@@ -43,6 +33,24 @@ bool pidEnabled = false;
 
 namespace FCS_PID
 {
+	/* PID SETTINGS */
+	const float ANGLE_KP_PITCH = 2.5f;
+	const float ANGLE_KI_PITCH = 3.0f;
+	const float ANGLE_KD_PITCH = 0.01f;
+
+	const float RATE_KP_PITCH = 0.9f;
+	const float RATE_KI_PITCH = 4.0f;
+	const float RATE_KD_PITCH = 0.05f;
+
+	const float ANGLE_KP_ROLL = 2.5f;
+	const float ANGLE_KI_ROLL = 3.0f;
+	const float ANGLE_KD_ROLL = 0.01f;
+
+	const float RATE_KP_ROLL = 0.9f;
+	const float RATE_KI_ROLL = 4.0f;
+	const float RATE_KD_ROLL = 0.05f;
+
+
 	void parseTaskNotification(uint32_t notification)
 	{
 		if (notification == PID_ENABLE)
@@ -130,8 +138,8 @@ namespace FCS_PID
 		*
 		*
 		*------------------------------------------------------*/
-		PID pAngCtrl(&pAngFB, &pRateDesired, &pAngleDesired, ANGLE_KP, ANGLE_KI, ANGLE_KD, P_ON_E, REVERSE);
-		PID rAngCtrl(&rAngFB, &rRateDesired, &rAngleDesired, ANGLE_KP, ANGLE_KI, ANGLE_KD, P_ON_E, DIRECT);
+		PID pAngCtrl(&pAngFB, &pRateDesired, &pAngleDesired, ANGLE_KP_PITCH, ANGLE_KI_PITCH, ANGLE_KD_PITCH, P_ON_E, REVERSE);
+		PID rAngCtrl(&rAngFB, &rRateDesired, &rAngleDesired, ANGLE_KP_ROLL, ANGLE_KI_ROLL, ANGLE_KD_ROLL, P_ON_E, DIRECT);
 
 		pAngCtrl.SetMode(0);
 		pAngCtrl.SetOutputLimits(-100.0f, 100.0f);
@@ -149,8 +157,8 @@ namespace FCS_PID
 		*
 		* Positive error signal yields negative output when in DIRECT mode
 		*------------------------------------------------------*/
-		PID pRateCtrl(&pRateFB, &pMotorCmd, &pRateDesired, RATE_KP, RATE_KI, RATE_KD, P_ON_E, DIRECT);
-		PID rRateCtrl(&rRateFB, &rMotorCmd, &rRateDesired, RATE_KP, RATE_KI, RATE_KD, P_ON_E, DIRECT);
+		PID pRateCtrl(&pRateFB, &pMotorCmd, &pRateDesired, RATE_KP_PITCH, RATE_KI_PITCH, RATE_KD_PITCH, P_ON_E, DIRECT);
+		PID rRateCtrl(&rRateFB, &rMotorCmd, &rRateDesired, RATE_KP_ROLL, RATE_KI_ROLL, RATE_KD_ROLL, P_ON_E, DIRECT);
 
 
 		pRateCtrl.SetMode(0);
