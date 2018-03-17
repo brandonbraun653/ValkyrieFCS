@@ -34,20 +34,20 @@ bool pidEnabled = false;
 namespace FCS_PID
 {
 	/* PID SETTINGS */
-	const float ANGLE_KP_PITCH = 2.5f;
-	const float ANGLE_KI_PITCH = 3.0f;
+	const float ANGLE_KP_PITCH = 4.5f;
+	const float ANGLE_KI_PITCH = 2.0f;
 	const float ANGLE_KD_PITCH = 0.01f;
 
 	const float RATE_KP_PITCH = 0.9f;
-	const float RATE_KI_PITCH = 4.0f;
+	const float RATE_KI_PITCH = 2.0f; //4
 	const float RATE_KD_PITCH = 0.05f;
 
-	const float ANGLE_KP_ROLL = 2.5f;
-	const float ANGLE_KI_ROLL = 3.0f;
+	const float ANGLE_KP_ROLL = 4.5f;
+	const float ANGLE_KI_ROLL = 2.0f;
 	const float ANGLE_KD_ROLL = 0.01f;
 
 	const float RATE_KP_ROLL = 0.9f;
-	const float RATE_KI_ROLL = 4.0f;
+	const float RATE_KI_ROLL = 2.0f;
 	const float RATE_KD_ROLL = 0.05f;
 
 
@@ -99,8 +99,8 @@ namespace FCS_PID
 // 		const float pitchStep[] = { 0.0, 15.0, 0.0, 15.0, 0.0, -15.0, 0.0, -15.0, 0.0 };
 
 		/* Uncomment these for manual poking (super scientific, I know) */
-		const float rollStep[]  = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-		const float pitchStep[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+		const float rollStep[] =  { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+		const float pitchStep[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
 
 		const int numSteps = sizeof(rollStep) / sizeof(rollStep[0]);
