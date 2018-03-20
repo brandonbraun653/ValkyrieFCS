@@ -195,9 +195,9 @@ struct SDLOG_Motors_t
 struct SDLOG_PIDAngleInput_t
 {
 	uint32_t tickTime = 0;
-	uint8_t pitch_angle_setpoint = 0;
-	uint8_t roll_angle_setpoint = 0;
-	uint8_t yaw_angle_setpoint = 0;
+	float pitch_angle_setpoint = 0;
+	float roll_angle_setpoint = 0;
+	float yaw_angle_setpoint = 0;
 };
 #pragma pack(pop)
 
@@ -206,9 +206,9 @@ struct SDLOG_PIDAngleInput_t
 struct SDLOG_PIDRateInput_t
 {
 	uint32_t tickTime = 0;
-	uint16_t pitch_rate_setpoint = 0;
-	uint16_t roll_rate_setpoint = 0;
-	uint16_t yaw_rate_setpoint = 0;
+	float pitch_rate_setpoint = 0;
+	float roll_rate_setpoint = 0;
+	float yaw_rate_setpoint = 0;
 };
 #pragma pack(pop)
 

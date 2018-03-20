@@ -34,20 +34,20 @@ bool pidEnabled = false;
 namespace FCS_PID
 {
 	/* PID SETTINGS */
-	const float ANGLE_KP_PITCH = 4.5f;
-	const float ANGLE_KI_PITCH = 2.0f;
+	const float ANGLE_KP_PITCH = 1.5f;
+	const float ANGLE_KI_PITCH = 3.0f;
 	const float ANGLE_KD_PITCH = 0.01f;
 
 	const float RATE_KP_PITCH = 0.9f;
-	const float RATE_KI_PITCH = 2.0f; //4
+	const float RATE_KI_PITCH = 4.0f; 
 	const float RATE_KD_PITCH = 0.05f;
 
-	const float ANGLE_KP_ROLL = 4.5f;
-	const float ANGLE_KI_ROLL = 2.0f;
+	const float ANGLE_KP_ROLL = 1.5f;
+	const float ANGLE_KI_ROLL = 3.0f;
 	const float ANGLE_KD_ROLL = 0.01f;
 
 	const float RATE_KP_ROLL = 0.9f;
-	const float RATE_KI_ROLL = 2.0f;
+	const float RATE_KI_ROLL = 4.0f;
 	const float RATE_KD_ROLL = 0.05f;
 
 
@@ -76,11 +76,11 @@ namespace FCS_PID
 // 			0.0, 5.0, 10.0, 15.0, 20.0, 15.0, 10.0, 5.0, 0.0, -5.0, -10.0, -15.0, -20.0, -15.0, -10.0, -5.0, 0.0 };
 
 		/* Uncomment these for 10 degree stepping: UNCOUPLED */
-// 		const float rollStep[]  = { 0.0, 10.0, 20.0, 10.0, 0.0, 10.0, 20.0, 10.0, 0.0,  -10.0, -20.0, -10.0, 0.0, -10.0, -20.0, -10.0, 0.0,
-// 									0.0,  0.0,  0.0,  0.0, 0.0,  0.0,  0.0, 0.0,  0.0,    0.0,   0.0,   0.0, 0.0,   0.0,   0.0,   0.0, 0.0 };
-// 
-// 		const float pitchStep[] = { 0.0,  0.0,  0.0,  0.0, 0.0,  0.0,  0.0, 0.0,  0.0,    0.0,   0.0,   0.0, 0.0,   0.0,   0.0,   0.0, 0.0,
-// 									0.0, 10.0, 20.0, 10.0, 0.0, 10.0, 20.0, 10.0, 0.0,  -10.0, -20.0, -10.0, 0.0, -10.0, -20.0, -10.0, 0.0 };
+		const float rollStep[] =  { 0.0, 10.0, 0.0, 10.0, 0.0, -10.0, 0.0, -10.0, 0.0,
+									0.0,  0.0, 0.0,  0.0, 0.0,   0.0, 0.0,   0.0, 0.0 };
+
+		const float pitchStep[] = { 0.0,  0.0, 0.0,  0.0, 0.0,   0.0, 0.0,   0.0, 0.0,
+									0.0, 10.0, 0.0, 10.0, 0.0, -10.0, 0.0, -10.0, 0.0 };
 
 		/* Uncomment these for 15 degree stepping: UNCOUPLED */
 // 		const float rollStep[]  = { 0.0, 15.0, 0.0, 15.0, 0.0, -15.0, 0.0, -15.0, 0.0,  0.0,   0.0,   0.0, 0.0,   0.0,   0.0,   0.0, 0.0 };
@@ -99,8 +99,8 @@ namespace FCS_PID
 // 		const float pitchStep[] = { 0.0, 15.0, 0.0, 15.0, 0.0, -15.0, 0.0, -15.0, 0.0 };
 
 		/* Uncomment these for manual poking (super scientific, I know) */
-		const float rollStep[] =  { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-		const float pitchStep[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+// 		const float rollStep[] =  { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+// 		const float pitchStep[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
 
 		const int numSteps = sizeof(rollStep) / sizeof(rollStep[0]);
@@ -261,22 +261,23 @@ namespace FCS_PID
 				pidCMD.rollControl = rMotorCmd;
 
 				/* Send data over to the motor controller thread without waiting for confirmation of success */
-				xSemaphoreTake(pidBufferMutex, 2);
-				xQueueOverwrite(qPID, &pidCMD);
-				xSemaphoreGive(pidBufferMutex);
-				
+				if (xSemaphoreTake(pidBufferMutex, 0) == pdPASS)
+				{
+					xQueueOverwrite(qPID, &pidCMD);
+					xSemaphoreGive(pidBufferMutex);
+				}
 				
 				/* Push log data to the SDCard task */
 				angleControllerLog.tickTime = (uint32_t)xTaskGetTickCount();
-				angleControllerLog.pitch_angle_setpoint = (uint8_t)pAngleDesired;
-				angleControllerLog.roll_angle_setpoint = (uint8_t)rAngleDesired;
-				angleControllerLog.yaw_angle_setpoint = (uint8_t)0;
+				angleControllerLog.pitch_angle_setpoint = pAngleDesired;
+				angleControllerLog.roll_angle_setpoint = rAngleDesired;
+				angleControllerLog.yaw_angle_setpoint = 0.0f;
 				xQueueSendToBack(qSD_PIDAngleSetpoint, &angleControllerLog, 0);
 				
 				rateControllerLog.tickTime = (uint32_t)xTaskGetTickCount();
-				rateControllerLog.pitch_rate_setpoint = (uint16_t)pRateDesired;
-				rateControllerLog.roll_rate_setpoint = (uint16_t)rRateDesired;
-				rateControllerLog.yaw_rate_setpoint = (uint16_t)0;
+				rateControllerLog.pitch_rate_setpoint = pRateDesired;
+				rateControllerLog.roll_rate_setpoint = rRateDesired;
+				rateControllerLog.yaw_rate_setpoint = 0.0f;
 				xQueueSendToBack(qSD_PIDRateSetpoint, &rateControllerLog, 0);
 			}
 
