@@ -101,6 +101,7 @@ namespace FCS_AHRS
 			0.0f, 0.0f, 0.0f, cnst, 0.0f, 0.0f,
 			0.0f, 0.0f, 0.0f, 0.0f, dnst, 0.0f,
 			0.0f, 0.0f, 0.0f, 0.0f, 0.0f, enst;
+
 		
 		sys.setCovariance(processNoise);
 
@@ -232,6 +233,7 @@ namespace FCS_AHRS
 
 			ahrs.getEulerDeg(eulerDeg);
 			ahrsData(eulerDeg, accel_filtered, gyro_filtered, mag_filtered);
+			//ahrsData(eulerDeg, accel_raw, gyro_raw, mag_raw);
 
 			#ifdef DEBUG
 			pitch = eulerDeg(0);
@@ -262,8 +264,6 @@ namespace FCS_AHRS
 				xSemaphoreGive(ahrsBufferMutex);
 			}
 			
-
-
 			//***********************BUG HERE***********************
 			// For some unknown reason, enabling this code will cause and undefined 
 			// instruction to be executed, triggering a hard fault. Not sure why this is

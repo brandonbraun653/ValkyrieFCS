@@ -108,7 +108,7 @@ namespace FCS_PID
 		int currentStep = 0;
 		bool steppingEnabled = true;
 		bool signalRecordingStop = false;
-		int STEP_DELAY_TIME_MS = 5000;
+		int STEP_DELAY_TIME_MS = 1000;
 
 
 		SDLOG_PIDAngleInput_t angleControllerLog;

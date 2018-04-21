@@ -132,8 +132,10 @@ namespace FCS_MOTOR
 			/*-------------------------------------
 			 * Write Motors
 			 *------------------------------------*/
-			motorController.updateSetPoint(m1, m2, m3, m4);
-			//motorController.updateSetPoint(baseThrottle, baseThrottle, baseThrottle, baseThrottle);
+			//motorController.updateSetPoint(m1, m2, m3, m4);
+			
+			uint16_t thr = ESC_MIN_THROTTLE + 150;
+			motorController.updateSetPoint(thr, thr, thr, thr);
 		
 			#ifdef DEBUG
 			pitch_cmd = commandInputFiltered(1);
