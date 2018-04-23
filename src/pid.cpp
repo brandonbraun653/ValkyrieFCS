@@ -15,7 +15,7 @@
 #include "pid.hpp"
 #include "radio.hpp"
 
-const int updateRate_mS = (1.0f / PID_UPDATE_FREQ_HZ) * 1000.0f;
+const int updateRate_mS = (1.0f / CTRL_UPDATE_FREQ_HZ) * 1000.0f;
 
 AHRSData_t ahrs;	/* Input data from the AHRS algorithm */
 PIDData_t pidCMD;	/* Output data from this thread */
@@ -30,7 +30,7 @@ bool pidEnabled = false;
 #define MOTOR_OUTPUT_RANGE 500.0f
 #define GYRO_SENSITIVITY 2000 //dps
 
-
+#if USING_PID_CONTROL
 namespace FCS_PID
 {
 	/* PID SETTINGS */
@@ -53,10 +53,10 @@ namespace FCS_PID
 
 	void parseTaskNotification(uint32_t notification)
 	{
-		if (notification == PID_ENABLE)
+		if (notification == CTRL_ENABLE)
 			pidEnabled = true;
 
-		if (notification == PID_DISABLE)
+		if (notification == CTRL_DISABLE)
 			pidEnabled = false;
 	}
 
@@ -180,7 +180,7 @@ namespace FCS_PID
 		for (;;)
 		{
 			#ifdef DEBUG
-			activeTask = PID_TASK;
+			activeTask = CTRL_TASK;
 			stackHighWaterMark_PID = uxTaskGetStackHighWaterMark(NULL);
 			#endif
 			
@@ -287,4 +287,4 @@ namespace FCS_PID
 
 	}
 }
-
+#endif /* !USING_PID_CONTROL */

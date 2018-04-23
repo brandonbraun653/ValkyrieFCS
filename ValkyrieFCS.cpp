@@ -18,9 +18,12 @@
 #include "bluetooth.hpp"
 #include "threading.hpp"
 #include "pid.hpp"
+#include "lqr.hpp"
 
 using namespace ThorDef::GPIO;
 using namespace ThorDef::SPI;
+
+
 
 void init(void* parameter);
 
@@ -58,7 +61,7 @@ void init(void* parameter)
 	 * The tasks MUST be created in this order:
 	 * 1. LedStatus
 	 * 2. SDCard
-	 * 3. PID
+	 * 3. PID or LQR
 	 * 4. Motor (This depends on [2,3] being started) 
 	 * 5. AHRS
 	 * */
@@ -73,9 +76,16 @@ void init(void* parameter)
 		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(10));
 	
 	
-	error = xTaskCreate(FCS_PID::pidTask, "pidTask", 350, NULL, PID_UPDATE_PRIORITY, &TaskHandle[PID_TASK]);
+	#if USING_PID_CONTROL
+	error = xTaskCreate(FCS_PID::pidTask, "pidTask", 350, NULL, CTRL_UPDATE_PRIORITY, &TaskHandle[CTRL_TASK]);
 	while (!ulTaskNotifyTake(pdTRUE, 0))
 		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(10));
+	#endif
+	#if USING_LQR_CONTROL
+	error = xTaskCreate(FCS_LQR::lqrController, "lqrTask", 500, NULL, CTRL_UPDATE_PRIORITY, &TaskHandle[CTRL_TASK]);
+	while (!ulTaskNotifyTake(pdTRUE, 0))
+		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(10));
+	#endif 
 	
 	
 	error = xTaskCreate(FCS_MOTOR::motorTask, "motorTask", 350, NULL, MOTOR_UPDATE_PRIORITY, &TaskHandle[MOTOR_TASK]);
@@ -87,10 +97,6 @@ void init(void* parameter)
 	while (!ulTaskNotifyTake(pdTRUE, 0))
 		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(10));
 	
-	
-	//xTaskCreate(consoleTask,	"cmdListener",	2000,	NULL,	CONSOLE_LOGGING_PRIORITY,	&TaskHandle[CONSOLE_TASK]);
-	//xTaskCreate(radioTask,		"radio",		1000,	NULL,	RADIO_UPDATE_PRIORITY,		&TaskHandle[RADIO_TASK]);
-	//xTaskCreate(bluetoothTask,	"bluetooth",	1000,	NULL,	BLUETOOTH_PRIORITY,			&TaskHandle[BLUETOOTH_TASK]);
 
 
 	#ifdef DEBUG
@@ -98,7 +104,7 @@ void init(void* parameter)
 	volatile TaskHandle_t hAhrs		= TaskHandle[AHRS_TASK];
 	volatile TaskHandle_t hLed		= TaskHandle[LED_STATUS_TASK];
 	volatile TaskHandle_t hMotor	= TaskHandle[MOTOR_TASK];
-	volatile TaskHandle_t hPid		= TaskHandle[PID_TASK];
+	volatile TaskHandle_t hPid		= TaskHandle[CTRL_TASK];
 	volatile size_t bytesRemaining	= xPortGetFreeHeapSize();
 	#endif
 	
@@ -114,7 +120,7 @@ void init(void* parameter)
 	/* Resume all tasks in the correct order */
 	vTaskResume(TaskHandle[LED_STATUS_TASK]);
 	vTaskResume(TaskHandle[SDCARD_TASK]);
-	vTaskResume(TaskHandle[PID_TASK]);
+	vTaskResume(TaskHandle[CTRL_TASK]);
 	vTaskResume(TaskHandle[MOTOR_TASK]);
 	vTaskResume(TaskHandle[AHRS_TASK]);
 	

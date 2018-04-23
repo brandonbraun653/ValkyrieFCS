@@ -35,10 +35,10 @@ enum LEDInstructions
 
 };
 
-enum PIDControllerInstructions
+enum ControllerInstructions
 {
-	PID_ENABLE	= (1U << 1),
-	PID_DISABLE = (1U << 2)
+	CTRL_ENABLE	= (1U << 1),
+	CTRL_DISABLE = (1U << 2)
 };
 
 
@@ -95,11 +95,23 @@ struct AHRSData_t
 	const float& mz() { return this->mag(2); }
 };
 
+/* Stores PID adjustment terms for the pitch, roll, yaw controllers
+ * which the motor thread interprets into commands */
 struct PIDData_t
 {
-	float pitchControl = 0.0;
-	float rollControl = 0.0;
-	float yawControl = 0.0;
+	float pitchControl = 0.0f;
+	float rollControl = 0.0f;
+	float yawControl = 0.0f;
+};
+
+/* Stores output commands from the LQR controller to be implemented
+ * by the motor thread. */
+struct LQRData_t
+{
+	uint16_t m1 = 0.0f;
+	uint16_t m2 = 0.0f;
+	uint16_t m3 = 0.0f;
+	uint16_t m4 = 0.0f;
 };
 
 

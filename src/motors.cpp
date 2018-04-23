@@ -25,13 +25,11 @@
 namespace FCS_MOTOR
 {
 	const uint16_t ARM_COMMAND = 0xFFFF;
-	const int updateRate_mS = (1.0f / PID_UPDATE_FREQ_HZ) * 1000.0f;
+	const int updateRate_mS = (1.0f / CTRL_UPDATE_FREQ_HZ) * 1000.0f;
 	const int ESC_ARM = 800;
-	const int ESC_MIN_THROTTLE = 1060;
-	const int ESC_MAX_THROTTLE = 1860;
-
+	
 	/* Low pass filtering constants for pitch cmd input */
-	const float dt = (1.0f / PID_UPDATE_FREQ_HZ);
+	const float dt = (1.0f / CTRL_UPDATE_FREQ_HZ);
 	const float tau = 0.01f;
 	const float alpha_lp = dt / tau;
 
@@ -50,7 +48,7 @@ namespace FCS_MOTOR
 		ESCQuad_Init initStruct;
 		initStruct.armCMD_uS = ESC_ARM;
 		initStruct.minThrottleCMD_uS = ESC_MIN_THROTTLE;
-		initStruct.maxThrottleCMD_uS = 1650;
+		initStruct.maxThrottleCMD_uS = 1450;
 		initStruct.outputFrequency = 450.0;
 	
 		initStruct.motor1 = boost::make_shared<GPIOClass>(GPIOB, PIN_6, ULTRA_SPD, GPIO_AF2_TIM4);
@@ -72,7 +70,7 @@ namespace FCS_MOTOR
 		uint16_t m3 = baseThrottle;
 		uint16_t m4 = baseThrottle;
 	
-		Eigen::Matrix<float, 4, 1> dummyVec1, dummyVec2, commandInputRaw, commandInputFiltered, motorOutput;
+		Eigen::Matrix<float, 4, 1> commandInputRaw, commandInputFiltered, motorOutput;
 		Eigen::Matrix4f motorMix;
 	
 		motorMix << 
@@ -83,15 +81,17 @@ namespace FCS_MOTOR
 	
 		ESCQuad motorController;
 		motorController.initialize(initStruct);
+		motorController.arm();
 		//motorController.throttleCalibration();
 	
-		/* Arm the motors and inform the PID loop to start sending data */
-		motorController.arm();
-		xTaskSendMessage(PID_TASK, PID_ENABLE);
+		/* Inform the controller loop and SD card logger to start doing their thing */
 		xTaskSendMessage(SDCARD_TASK, SD_CARD_ENABLE_IO);
+		xTaskSendMessage(CTRL_TASK, CTRL_ENABLE);
+		
 	
-		PIDData_t pidInput; /* Input struct for receiving pid commands */
-		SDLOG_Motors_t sd_motorLog; /* Output struct for logging motor commands */
+		PIDData_t pidInput;
+		LQRData_t lqrInput;
+		SDLOG_Motors_t sd_motorLog;
 	
 		
 		/* Tell init task that this thread's initialization is done and ok to run.
@@ -108,7 +108,8 @@ namespace FCS_MOTOR
 			stackHighWaterMark_MOTOR = uxTaskGetStackHighWaterMark(NULL);
 			#endif
 		
-			/* Grab the latest PID command outputs */
+			/* Grab the latest CTRL command outputs */
+			#if USING_PID_CTRL
 			if (xSemaphoreTake(pidBufferMutex, 0) == pdPASS)
 			{
 				xQueueReceive(qPID, &pidInput, 0);
@@ -118,24 +119,30 @@ namespace FCS_MOTOR
 				commandInputRaw << (float)baseThrottle, pidInput.pitchControl, pidInput.rollControl, pidInput.yawControl;
 				commandInputFiltered += alpha_lp * (commandInputRaw - commandInputFiltered);
 			}
-		
-			/*-------------------------------------
-			 * Things
-			 *------------------------------------*/
 			motorOutput = motorMix*commandInputFiltered;
-		
+			#endif
+			
+			#if USING_LQR_CONTROL
+			if (xSemaphoreTake(lqrBufferMutex, 0) == pdPASS)
+			{
+				xQueueReceive(qLQR, &lqrInput, 0);
+				xSemaphoreGive(lqrBufferMutex);	
+			}
+			motorOutput << lqrInput.m1, lqrInput.m2, lqrInput.m3, lqrInput.m4;
+			#endif 
+
+			/*-------------------------------------
+			 * Write Motors
+			 *------------------------------------*/
 			m1 = motorController.limit((uint16_t)motorOutput(0));
 			m2 = motorController.limit((uint16_t)motorOutput(1));
 			m3 = motorController.limit((uint16_t)motorOutput(2));
 			m4 = motorController.limit((uint16_t)motorOutput(3));
-		
-			/*-------------------------------------
-			 * Write Motors
-			 *------------------------------------*/
-			//motorController.updateSetPoint(m1, m2, m3, m4);
 			
-			uint16_t thr = ESC_MIN_THROTTLE + 150;
-			motorController.updateSetPoint(thr, thr, thr, thr);
+			motorController.updateSetPoint(m1, m2, m3, m4);
+			
+//			uint16_t thr = ESC_MIN_THROTTLE + 150;
+//			motorController.updateSetPoint(thr, thr, thr, thr);
 		
 			#ifdef DEBUG
 			pitch_cmd = commandInputFiltered(1);

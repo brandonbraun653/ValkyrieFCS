@@ -1,5 +1,3 @@
-
-
 /* C/C++ Includes */
 #include <stdint.h>
 #include <stdlib.h>

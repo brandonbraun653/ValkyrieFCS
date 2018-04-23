@@ -32,7 +32,6 @@
 #include "kalman/SquareRootUnscentedKalmanFilter.hpp"
 #include "IMUModel.hpp"
 
-
 namespace FCS_AHRS
 {
 	typedef float T;
@@ -255,23 +254,21 @@ namespace FCS_AHRS
 
 
 			/*----------------------------
-			* Data Post Processing
+			* Buffer data to another thread
 			*---------------------------*/
-			/* Send data over to the PID thread*/
 			if (xSemaphoreTake(ahrsBufferMutex, 0) == pdPASS)
 			{
 				xQueueOverwrite(qAHRS, &ahrsData);
 				xSemaphoreGive(ahrsBufferMutex);
 			}
 			
-			//***********************BUG HERE***********************
+			//***********************BUG BELOW**********************
 			// For some unknown reason, enabling this code will cause and undefined 
 			// instruction to be executed, triggering a hard fault. Not sure why this is
 			// the case, but my guess at the moment is that it may be due to using two queue
 			// 'send to back' methods one after the other. Or it could be something totally
 			// unrelated...for now, just leave code commented as it really isn't needed.
 			//******************************************************
-
 			/* Send data to the SD Card for logging */
 // 			sd_ahrs_minimal.tickTime = (uint32_t)xTaskGetTickCount();
 // 			sd_ahrs_minimal.euler_deg_pitch = ahrsData.pitch();

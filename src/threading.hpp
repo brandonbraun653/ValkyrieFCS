@@ -20,8 +20,13 @@
 *----------------------------------*/
 extern QueueHandle_t qIMU;		/* Buffers raw data from IMU for the AHRS algorithm */
 extern QueueHandle_t qAHRS;		/* Buffers processed AHRS data for the PID controller */
-extern QueueHandle_t qPID;		/* Buffers PID output data for the Motor controller */
 
+#if USING_PID_CONTROL
+extern QueueHandle_t qPID;		/* Buffers PID output data for the Motor controller */
+#endif
+#if USING_LQR_CONTROL
+extern QueueHandle_t qLQR;		/* Buffers LQR output data for the Motor controller */
+#endif
 
 extern QueueHandle_t qSD_AHRSFull;
 extern QueueHandle_t qSD_AHRSMinimal;
@@ -38,6 +43,8 @@ extern SemaphoreHandle_t ahrsBufferMutex; /* Protects data passing between AHRS 
 
 extern SemaphoreHandle_t pidBufferMutex;  /* Protects data passing between PID and Motor control loops */
 
+extern SemaphoreHandle_t lqrBufferMutex;  /* Protects data passing between LQR and Motor control loops*/
+
 
 enum TaskIndex
 {
@@ -50,7 +57,7 @@ enum TaskIndex
 	LED_STATUS_TASK,
 	RADIO_TASK,
 	BLUETOOTH_TASK,
-	PID_TASK,
+	CTRL_TASK,
 	
 	TOTAL_TASK_SIZE
 };
