@@ -92,13 +92,13 @@ namespace FCS_LQR
 		Eigen::Matrix<float, 3, 1>  currStateAngle, currStateRate, angleError,
 									desStateAngle, desStateRate, rateError;
 		
-		// LQR gains calculated from Matlab
+		// LQR gains calculated from Matlab (this particular one is quite aggressive)
 		Eigen::Matrix<float, 4, 6> K;
 		K << 
 			0.0,	0.0,	0.0,	0,		0.0,	0.0,
-			1.0,	0.0,	0.0,	1.0075, 0.0,	0.0,
-			0.0,	1.0,	0.0,	0.0,	1.0075,	0.0,
-			0.0,	0.0,	1.0,	0.0,	0.0,	1.0129;
+			0.6667,	0.0,	0.0,	0.1202, 0.0,	0.0,
+			0.0,	1.0,	0.0,	0.0,	0.1394,	0.0,
+			0.0,	0.0,	1.0,	0.0,	0.0,	0.1745;
 		
 		// State Matrix
 		Eigen::Matrix<float, 6, 1> State;
@@ -110,14 +110,13 @@ namespace FCS_LQR
 		// Calculated Motor RPM Values in rad/s
 		Eigen::Matrix<float, 4, 1> motorDelta;
 		
-		
 		// Scales the errors between state and desired [Phi, Theta, Psi]
 		Eigen::Matrix<float, 3, 1> angleErrorGains;
-		angleErrorGains << 5.0, 5.0, 1.0;
+		angleErrorGains << 1.0, 1.0, 1.0;
 		
 		// Scales the errors between state and desired [dPhi, dTheta, dPsi] <=> [P,Q,R]
 		Eigen::Matrix<float, 3, 1> rateErrorGains;
-		rateErrorGains << 5.0, 5.0, 1.0;
+		rateErrorGains << 1.0, 1.0, 1.0;
 		
 		
 		
@@ -164,7 +163,7 @@ namespace FCS_LQR
 				angleError = (angleError.array() * angleErrorGains.array()).matrix();
 				
 				
-				/* Calculate the Rate Error signal */
+				/* Calculate the Rate Error signal, using the current angle error as the rate reference */
 				rateError = angleError - currStateRate;
 				rateError = (rateError.array() * rateErrorGains.array()).matrix();
 				
@@ -180,7 +179,7 @@ namespace FCS_LQR
 				 * has no concept of height. It is only stabilizing angles and rotation rates. */
 				U(0) = LQR_TEST_BASE_THROTTLE;
 				
-				/* Convert 'U' into motor commands with units (rad/s)^2 */
+				/* Convert 'U' into motor commands */
 				motorDelta = motorMix*U;
 				
 				
