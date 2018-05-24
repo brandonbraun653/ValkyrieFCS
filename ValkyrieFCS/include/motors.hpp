@@ -7,5 +7,4 @@ namespace FCS_MOTOR
 	extern void motorTask(void* argument);
 }
 
-
 #endif /* MOTORS_HPP_ */

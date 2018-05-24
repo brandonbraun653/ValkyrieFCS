@@ -4,9 +4,9 @@
 #include <string>
 
 /* Thor Includes */
-#include "include/thor.h"
-#include "include/uart.h"
-#include "include/print.h"
+#include <Thor/include/thor.hpp>
+#include <Thor/include/uart.hpp>
+#include <Thor/include/print.hpp>
 
 /* FreeRTOS Includes */
 #include "FreeRTOS.h"
@@ -14,10 +14,10 @@
 #include "queue.h"
 
 /* Project Includes */
-#include "fcsConfig.hpp"
-#include "console.hpp"
-#include "dataTypes.hpp"
-#include "radio.hpp"
+#include <ValkyrieFCS/include/fcsConfig.hpp>
+#include <ValkyrieFCS/include/console.hpp>
+#include <ValkyrieFCS/include/dataTypes.hpp>
+#include <ValkyrieFCS/include/radio.hpp>
 
 const int updateRate_mS = (1.0 / CONSOLE_UPDATE_FREQ_HZ) * 1000.0;
 

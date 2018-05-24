@@ -1,4 +1,4 @@
-#include "threading.hpp"
+#include <ValkyrieFCS/include/threads.hpp>
 
 /*----------------------------------
 * Queues
@@ -30,24 +30,4 @@ SemaphoreHandle_t ahrsBufferMutex = xSemaphoreCreateMutex();
 SemaphoreHandle_t pidBufferMutex = xSemaphoreCreateMutex();
 SemaphoreHandle_t lqrBufferMutex = xSemaphoreCreateMutex();
 
-
-
-boost::container::vector<TaskHandle_t> TaskHandle(TOTAL_TASK_SIZE);
 TaskIndex activeTask;
-
-
-BaseType_t xTaskSendMessage(TaskIndex idx, uint32_t msg)
-{
-	if (TaskHandle[idx])
-		return xTaskNotify(TaskHandle[idx], msg, eSetValueWithOverwrite);
-	else
-		return pdFAIL;
-}
-
-BaseType_t xTaskSendMessageFromISR(TaskIndex idx, uint32_t msg)
-{
-	if (TaskHandle[idx])
-		return xTaskNotifyFromISR(TaskHandle[idx], msg, eSetValueWithOverwrite, NULL);
-	else
-		return pdFAIL;
-}

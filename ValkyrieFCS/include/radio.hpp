@@ -17,5 +17,4 @@ extern QueueHandle_t qRadio_Request;		/* Request Inputs */
 *-----------------------------*/
 extern void radioTask(void* argument);
 
-
 #endif /* RADIO_HPP_ */

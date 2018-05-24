@@ -11,9 +11,12 @@
 #include "queue.h"
 #include "semphr.h"
 
+/* Thor Includes */
+#include <Thor/include/threading.hpp>
+
 /* Project Includes */
-#include "fcsConfig.hpp"
-#include "dataTypes.hpp"
+#include <ValkyrieFCS/include/fcsConfig.hpp>
+#include <ValkyrieFCS/include/dataTypes.hpp>
 
 /*----------------------------------
 * Queues
@@ -61,12 +64,8 @@ enum TaskIndex
 	
 	TOTAL_TASK_SIZE
 };
-extern boost::container::vector<TaskHandle_t> TaskHandle;
 
 extern TaskIndex activeTask; /* A simple debugging flag to check which task is currently running */
 
-/* Allows sending a notification message to any task from anywhere */
-extern BaseType_t xTaskSendMessage(const TaskIndex, const uint32_t);
-extern BaseType_t xTaskSendMessageFromISR(const TaskIndex, const uint32_t);
 
 #endif
