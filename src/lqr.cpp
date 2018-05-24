@@ -112,11 +112,11 @@ namespace FCS_LQR
 		
 		// Scales the errors between state and desired [Phi, Theta, Psi]
 		Eigen::Matrix<float, 3, 1> angleErrorGains;
-		angleErrorGains << 1.0, 1.0, 1.0;
+		angleErrorGains << 5.0, 5.0, 5.0;
 		
 		// Scales the errors between state and desired [dPhi, dTheta, dPsi] <=> [P,Q,R]
 		Eigen::Matrix<float, 3, 1> rateErrorGains;
-		rateErrorGains << 1.0, 1.0, 1.0;
+		rateErrorGains << 5.0, 5.0, 5.0;
 		
 		
 		
