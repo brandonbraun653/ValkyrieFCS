@@ -1,13 +1,10 @@
-/* FreeRTOS Includes */
-#include "FreeRTOS.h"
-#include "task.h"
-
-/* Thor Includes */
-#include <Thor/include/thor.hpp>
-
 #ifdef DEBUG
 #include "SysprogsProfiler.h"
 #endif
+
+/* Chimera Includes */
+#include <Chimera\threading.hpp>
+#include <Chimera\gpio.hpp>
 
 /* Thread Task Includes */
 #include <ValkyrieFCS/include/fcsConfig.hpp>
@@ -23,20 +20,33 @@
 #include <ValkyrieFCS/include/lqr.hpp>
 
 
-void init(void* parameter);
+
+
+using namespace Chimera::GPIO;
+using namespace Chimera::Threading;
+
+TaskHandle_t ledHandle;
+TaskHandle_t sdCardHandle;
+TaskHandle_t ctrlHandle;
+TaskHandle_t motorHandle;
+TaskHandle_t ahrsHandle;
 
 int main(void)
 {
-	HAL_Init();
-	ThorInit();
+	ChimeraInit();
 	
 	#ifdef DEBUG
 	InitializeSamplingProfiler();
 	InitializeInstrumentingProfiler();
 	#endif 
 
-//	xTaskCreate(init, "init", 500, NULL, 1, &TaskHandle[INIT_TASK]);
-//	vTaskStartScheduler();
+	addThread(FCS_LED::ledStatus, "ledTask", 350, NULL, STATUS_LEDS_PRIORITY, &ledHandle);
+	//addThread(FCS_SD::sdCardTask, "sdTask", 350, NULL, SDCARD_LOGGING_PRIORITY, &sdCardHandle);
+	//addThread(FCS_PID::pidTask, "pidTask", 350, NULL, CTRL_UPDATE_PRIORITY, &ctrlHandle);
+	//addThread(FCS_MOTOR::motorTask, "motorTask", 350, NULL, MOTOR_UPDATE_PRIORITY, &motorHandle);
+	addThread(FCS_AHRS::ahrsTask, "ahrsTask", 8000, NULL, AHRS_UPDATE_PRIORITY, &ahrsHandle);
+
+	startScheduler();
 	
 	/* We will never reach here as the scheduler should have taken over */
 	for (;;)

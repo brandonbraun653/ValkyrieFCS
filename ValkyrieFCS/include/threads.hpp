@@ -11,8 +11,8 @@
 #include "queue.h"
 #include "semphr.h"
 
-/* Thor Includes */
-#include <Thor/include/threading.hpp>
+/* Chimera Includes */
+#include <Chimera/threading.hpp>
 
 /* Project Includes */
 #include <ValkyrieFCS/include/fcsConfig.hpp>
