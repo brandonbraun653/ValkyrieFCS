@@ -5,10 +5,10 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
-/* Thor Includes */
-#include <Thor/include/thor.hpp>
-#include <Thor/include/uart.hpp>
-#include <Thor/include/gpio.hpp>
+/* Chimera Includes */
+#include <Chimera/threading.hpp>
+#include <Chimera/gpio.hpp>
+#include <Chimera/serial.hpp>
 
 /* ValkyrieRTX Includes */
 #include "rtx.hpp"
@@ -22,6 +22,22 @@
 #include <ValkyrieFCS/include/dataTypes.hpp>
 #include <ValkyrieFCS/include/sdcard.hpp>
 
+using namespace Chimera::Serial;
+
+void radioTask(void* argument)
+{
+	SerialClass comms(4);
+
+
+	Chimera::Threading::signalThreadSetupComplete();
+	TickType_t lastTimeWoken = xTaskGetTickCount();
+	for (;;)
+	{
+
+
+		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(1000));
+	}
+}
 
 //using namespace ThorDef::GPIO;
 //

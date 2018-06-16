@@ -22,13 +22,14 @@
 #include <ValkyrieFCS/include/dataTypes.hpp>
 #include <ValkyrieFCS/include/threads.hpp>
 #include <ValkyrieFCS/include/ahrs.hpp>
+#include <ValkyrieFCS/include/IMUModel.hpp>
 
 /* Madgwick Filter */
-//#include "madgwick.hpp"
+#include "madgwick.hpp"
 
 /* Kalman Filter */
 #include "kalman/SquareRootUnscentedKalmanFilter.hpp"
-//#include "IMUModel.hpp"
+
 
 using namespace Chimera::GPIO;
 using namespace Chimera::SPI;
@@ -38,11 +39,11 @@ using namespace Chimera::SPI;
 namespace FCS_AHRS
 {
 	typedef float T;
-	//typedef IMU::State<T> State;
-	//typedef IMU::Control<T> Control;
-	//typedef IMU::Measurement<T> Measurement;
-	//typedef IMU::SystemModel<T> SystemModel;
-	//typedef IMU::MeasurementModel<T> MeasurementModel;
+	typedef IMU::State<T> State;
+	typedef IMU::Control<T> Control;
+	typedef IMU::Measurement<T> Measurement;
+	typedef IMU::SystemModel<T> SystemModel;
+	typedef IMU::MeasurementModel<T> MeasurementModel;
 	
 	const int updateRate_mS = (1.0 / SENSOR_UPDATE_FREQ_HZ) * 1000.0;
 	const int magMaxUpdateRate_mS = (1.0 / LSM9DS1_M_MAX_BW) * 1000.0;
@@ -77,46 +78,46 @@ namespace FCS_AHRS
 		/*----------------------------------
 		* Initialize the UKF
 		*----------------------------------*/
-		//State x, x_ukf;
-		//Control u;
-		//SystemModel sys;
-		//MeasurementModel om;
-		//Measurement meas;
+		State x, x_ukf;
+		Control u;
+		SystemModel sys;
+		MeasurementModel om;
+		Measurement meas;
 
-		//Eigen::Matrix<T, 6, 6> R;
-		//Eigen::Matrix<T, 6, 6> processNoise;
+		Eigen::Matrix<T, 6, 6> R;
+		Eigen::Matrix<T, 6, 6> processNoise;
 
-		//Kalman::SquareRootUnscentedKalmanFilter<State> ukf(0.5f, 3.0f, 0.0f);
+		Kalman::SquareRootUnscentedKalmanFilter<State> ukf(0.5f, 3.0f, 0.0f);
 
-		//x.setZero();
-		//u.setZero();
-		//R.setZero();
+		x.setZero();
+		u.setZero();
+		R.setZero();
 
-		//T cnst = 5.00e-4f;
-		//T dnst = 3.33e-4f;
-		//T enst = 5.00e-4f;
+		T cnst = 5.00e-4f;
+		T dnst = 3.33e-4f;
+		T enst = 5.00e-4f;
 
-		//processNoise <<
-		//	cnst, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-		//	0.0f, dnst, 0.0f, 0.0f, 0.0f, 0.0f,
-		//	0.0f, 0.0f, enst, 0.0f, 0.0f, 0.0f,
-		//	0.0f, 0.0f, 0.0f, cnst, 0.0f, 0.0f,
-		//	0.0f, 0.0f, 0.0f, 0.0f, dnst, 0.0f,
-		//	0.0f, 0.0f, 0.0f, 0.0f, 0.0f, enst;
+		processNoise <<
+			cnst, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, dnst, 0.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, enst, 0.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 0.0f, cnst, 0.0f, 0.0f,
+			0.0f, 0.0f, 0.0f, 0.0f, dnst, 0.0f,
+			0.0f, 0.0f, 0.0f, 0.0f, 0.0f, enst;
 
 
-		//sys.setCovariance(processNoise);
+		sys.setCovariance(processNoise);
 
-		//R(0, 0) = accelUncertainty * accelUncertainty;
-		//R(1, 1) = accelUncertainty * accelUncertainty;
-		//R(2, 2) = accelUncertainty * accelUncertainty;
-		//R(3, 3) = gyroUncertainty * gyroUncertainty;
-		//R(4, 4) = gyroUncertainty * gyroUncertainty;
-		//R(5, 5) = gyroUncertainty * gyroUncertainty;
+		R(0, 0) = accelUncertainty * accelUncertainty;
+		R(1, 1) = accelUncertainty * accelUncertainty;
+		R(2, 2) = accelUncertainty * accelUncertainty;
+		R(3, 3) = gyroUncertainty * gyroUncertainty;
+		R(4, 4) = gyroUncertainty * gyroUncertainty;
+		R(5, 5) = gyroUncertainty * gyroUncertainty;
 
-		//om.setCovariance(R);
+		om.setCovariance(R);
 
-		//ukf.init(x);
+		ukf.init(x);
 
 
 		/*----------------------------------
@@ -144,7 +145,7 @@ namespace FCS_AHRS
 		Eigen::Vector3f accel_raw, gyro_raw, mag_raw;
 		Eigen::Vector3f accel_filtered, gyro_filtered, mag_filtered, eulerDeg;
 
-		//MadgwickFilter ahrs((AHRS_UPDATE_RATE_MULTIPLIER * SENSOR_UPDATE_FREQ_HZ), beta);
+		MadgwickFilter ahrs((AHRS_UPDATE_RATE_MULTIPLIER * SENSOR_UPDATE_FREQ_HZ), beta);
 
 		float dt = (1.0f / SENSOR_UPDATE_FREQ_HZ);
 		float tau_accel = 0.01f;
@@ -198,22 +199,22 @@ namespace FCS_AHRS
 			/*----------------------------
 			* UKF Algorithm
 			*---------------------------*/
-			////Simulate the system
-			//x = sys.f(x, u);
+			//Simulate the system
+			x = sys.f(x, u);
 
-			////Predict state for current time step 
-			//x_ukf = ukf.predict(sys);
+			//Predict state for current time step 
+			x_ukf = ukf.predict(sys);
 
-			////Take a measurement given system state
-			//meas << accel_raw, gyro_raw;
+			//Take a measurement given system state
+			meas << accel_raw, gyro_raw;
 
-			////Update the state equation given measurement
-			//x_ukf = ukf.update(om, meas);
+			//Update the state equation given measurement
+			x_ukf = ukf.update(om, meas);
 
 
-			//accel_filtered << x_ukf.ax(), x_ukf.ay(), x_ukf.az();
-			//gyro_filtered << x_ukf.gx(), x_ukf.gy(), x_ukf.gz();
-			//mag_filtered = mag_raw;
+			accel_filtered << x_ukf.ax(), x_ukf.ay(), x_ukf.az();
+			gyro_filtered << x_ukf.gx(), x_ukf.gy(), x_ukf.gz();
+			mag_filtered = mag_raw;
 
 
 			/*----------------------------
@@ -223,40 +224,40 @@ namespace FCS_AHRS
 			* to achieve decent convergence to a stable value. This thread only runs when
 			* new data has arrived from the IMU, so frequency multiplication is as simple
 			* as looping 3-5 times here. */
-			//for (int i = 0; i < AHRS_UPDATE_RATE_MULTIPLIER; i++)
-			//	ahrs.update(accel_filtered, gyro_filtered, mag_filtered);
+			for (int i = 0; i < AHRS_UPDATE_RATE_MULTIPLIER; i++)
+				ahrs.update(accel_filtered, gyro_filtered, mag_filtered);
 
-			//ahrs.getEulerDeg(eulerDeg);
-			//ahrsData(eulerDeg, accel_filtered, gyro_filtered, mag_filtered);
-			////ahrsData(eulerDeg, accel_raw, gyro_raw, mag_raw);
+			ahrs.getEulerDeg(eulerDeg);
+			ahrsData(eulerDeg, accel_filtered, gyro_filtered, mag_filtered);
+			//ahrsData(eulerDeg, accel_raw, gyro_raw, mag_raw);
 
-			//#ifdef DEBUG
-			//pitch = eulerDeg(0);
-			//roll = eulerDeg(1);
-			//yaw = eulerDeg(2);
+			#ifdef DEBUG
+			pitch = eulerDeg(0);
+			roll = eulerDeg(1);
+			yaw = eulerDeg(2);
 
-			//ax = accel_filtered(0);
-			//ay = accel_filtered(1);
-			//az = accel_filtered(2);
+			ax = accel_filtered(0);
+			ay = accel_filtered(1);
+			az = accel_filtered(2);
 
-			//gx = gyro_filtered(0);
-			//gy = gyro_filtered(1);
-			//gz = gyro_filtered(2);
+			gx = gyro_filtered(0);
+			gy = gyro_filtered(1);
+			gz = gyro_filtered(2);
 
-			//mx = mag_filtered(0);
-			//my = mag_filtered(1);
-			//mz = mag_filtered(2);
-			//#endif
+			mx = mag_filtered(0);
+			my = mag_filtered(1);
+			mz = mag_filtered(2);
+			#endif
 
 
 			/*----------------------------
 			* Buffer data to another thread
 			*---------------------------*/
-			//if (xSemaphoreTake(ahrsBufferMutex, 0) == pdPASS)
-			//{
-			//	xQueueOverwrite(qAHRS, &ahrsData);
-			//	xSemaphoreGive(ahrsBufferMutex);
-			//}
+			if (xSemaphoreTake(ahrsBufferMutex, 0) == pdPASS)
+			{
+				xQueueOverwrite(qAHRS, &ahrsData);
+				xSemaphoreGive(ahrsBufferMutex);
+			}
 			
 			//***********************BUG BELOW**********************
 			// For some unknown reason, enabling this sd_ahrs_minimal code will cause an undefined 
@@ -273,20 +274,20 @@ namespace FCS_AHRS
 // 			xQueueSendToBack(qSD_AHRSMinimal, &sd_ahrs_minimal, 0);
 
 
-			//sd_ahrs_full.tickTime = (uint32_t)xTaskGetTickCount();
-			//sd_ahrs_full.euler_deg_pitch = ahrsData.pitch();
-			//sd_ahrs_full.euler_deg_roll = ahrsData.roll();
-			//sd_ahrs_full.euler_deg_yaw = ahrsData.yaw();
-			//sd_ahrs_full.accel_x = ahrsData.ax();
-			//sd_ahrs_full.accel_y = ahrsData.ay();
-			//sd_ahrs_full.accel_z = ahrsData.az();
-			//sd_ahrs_full.gyro_x = ahrsData.gx();
-			//sd_ahrs_full.gyro_y = ahrsData.gy();
-			//sd_ahrs_full.gyro_z = ahrsData.gz();
-			//sd_ahrs_full.mag_x = ahrsData.mx();
-			//sd_ahrs_full.mag_y = ahrsData.my();
-			//sd_ahrs_full.mag_z = ahrsData.mz();
-			//xQueueSendToBack(qSD_AHRSFull, &sd_ahrs_full, 0);
+			sd_ahrs_full.tickTime = (uint32_t)xTaskGetTickCount();
+			sd_ahrs_full.euler_deg_pitch = ahrsData.pitch();
+			sd_ahrs_full.euler_deg_roll = ahrsData.roll();
+			sd_ahrs_full.euler_deg_yaw = ahrsData.yaw();
+			sd_ahrs_full.accel_x = ahrsData.ax();
+			sd_ahrs_full.accel_y = ahrsData.ay();
+			sd_ahrs_full.accel_z = ahrsData.az();
+			sd_ahrs_full.gyro_x = ahrsData.gx();
+			sd_ahrs_full.gyro_y = ahrsData.gy();
+			sd_ahrs_full.gyro_z = ahrsData.gz();
+			sd_ahrs_full.mag_x = ahrsData.mx();
+			sd_ahrs_full.mag_y = ahrsData.my();
+			sd_ahrs_full.mag_z = ahrsData.mz();
+			xQueueSendToBack(qSD_AHRSFull, &sd_ahrs_full, 0);
 
 			vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(updateRate_mS));
 		}
