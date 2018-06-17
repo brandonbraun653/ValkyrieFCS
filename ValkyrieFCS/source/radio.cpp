@@ -26,15 +26,31 @@ using namespace Chimera::Serial;
 
 void radioTask(void* argument)
 {
-	SerialClass comms(4);
+	//Thor specific init settings
+	Thor::Definitions::Serial::SerialPins serialPinSetup;
+	serialPinSetup.TX_GPIOx = GPIOA;
+	serialPinSetup.TX_Pin = Thor::Definitions::GPIO::PIN_9;
+	serialPinSetup.TX_AltFuncCode = GPIO_AF7_USART1;
 
+	serialPinSetup.RX_GPIOx = GPIOA;
+	serialPinSetup.RX_Pin = Thor::Definitions::GPIO::PIN_10;
+	serialPinSetup.RX_AltFuncCode = GPIO_AF7_USART1;
+
+
+	//Chimera serial setup 
+	Thor::Peripheral::Serial::SerialClass comms(1, &serialPinSetup);
+	comms.begin();
+	comms.setMode(Thor::Definitions::SubPeripheral::TX, Thor::Definitions::Modes::DMA);
 
 	Chimera::Threading::signalThreadSetupComplete();
+
+
+	
 	TickType_t lastTimeWoken = xTaskGetTickCount();
 	for (;;)
 	{
 
-
+		comms.write("hey man\r\n");
 		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(1000));
 	}
 }

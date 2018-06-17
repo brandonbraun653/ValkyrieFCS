@@ -48,14 +48,14 @@ int main(void)
 	 * 5. AHRS
 	 * 
 	 */
-	addThread(FCS_LED::ledStatus, "ledTask", 350, NULL, STATUS_LEDS_PRIORITY, &ledHandle);
-	//addThread(radioTask, "radio", 500, NULL, 2, &radioHandle);
+	addThread(FCS_LED::ledStatus, "ledTask", 350, NULL, STATUS_LEDS_PRIORITY, ledHandle);
+	addThread(radioTask, "radio", 500, NULL, 2, radioHandle);
 	//addThread(FCS_SD::sdCardTask, "sdTask", 350, NULL, SDCARD_LOGGING_PRIORITY, &sdCardHandle);
 	//addThread(FCS_PID::pidTask, "pidTask", 350, NULL, CTRL_UPDATE_PRIORITY, &ctrlHandle);
 	//addThread(FCS_MOTOR::motorTask, "motorTask", 350, NULL, MOTOR_UPDATE_PRIORITY, &motorHandle);
 	//addThread(FCS_AHRS::ahrsTask, "ahrsTask", 8000, NULL, AHRS_UPDATE_PRIORITY, &ahrsHandle);
 
-	startScheduler();
+	startScheduler(true);
 	
 	/* We will never reach here as the scheduler should have taken over */
 	for (;;)
