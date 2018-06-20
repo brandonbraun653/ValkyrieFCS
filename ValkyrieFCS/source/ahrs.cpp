@@ -127,14 +127,6 @@ namespace FCS_AHRS
 		GPIOClass_sPtr lsm_ss_m = boost::make_shared<Chimera::GPIO::GPIOClass>(PORTC, 3);
 
 		LSM9DS1 imu(AHRS_SPI_CHANNEL, lsm_ss_xg, lsm_ss_m);
-
-		/* Force halt of the device if the IMU cannot be reached */
-		if (imu.begin() == 0)
-			BasicErrorHandler("The IMU WHO_AM_I registers did not return valid readings");
-
-		imu.calibrate(true); /* "true" forces an automatic software subtraction of the calculated bias from all further data */
-		imu.calibrateMag(true); /* "true" writes the offset into the mag sensor hardware for automatic subtraction in results */
-
 		int count = 0;
 
 
@@ -153,6 +145,15 @@ namespace FCS_AHRS
 		
 		
 		Chimera::Threading::signalThreadSetupComplete();
+
+		/* Force halt of the device if the IMU cannot be reached */
+		if (imu.begin() == 0)
+			BasicErrorHandler("The IMU WHO_AM_I registers did not return valid readings");
+
+		imu.calibrate(true); /* "true" forces an automatic software subtraction of the calculated bias from all further data */
+		imu.calibrateMag(true); /* "true" writes the offset into the mag sensor hardware for automatic subtraction in results */
+
+
 		TickType_t lastTimeWoken = xTaskGetTickCount();
 		for (;;)
 		{

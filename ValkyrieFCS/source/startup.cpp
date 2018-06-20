@@ -1,10 +1,13 @@
-#ifdef DEBUG
-#include "SysprogsProfiler.h"
-#endif
+
 
 /* Chimera Includes */
 #include <Chimera/threading.hpp>
+#include <Chimera/serial.hpp>
 #include <Chimera/gpio.hpp>
+
+#if defined(DEBUG) && defined(USING_VGDB_PROFILER)
+#include "SysprogsProfiler.h"
+#endif
 
 /* Thread Task Includes */
 #include <ValkyrieFCS/include/fcsConfig.hpp>
@@ -34,7 +37,7 @@ int main(void)
 {
 	ChimeraInit();
 	
-	#ifdef DEBUG
+	#if defined(DEBUG) && defined(USING_VGDB_PROFILER)
 	InitializeSamplingProfiler();
 	InitializeInstrumentingProfiler();
 	#endif 
@@ -49,11 +52,11 @@ int main(void)
 	 * 
 	 */
 	addThread(FCS_LED::ledStatus, "ledTask", 350, NULL, STATUS_LEDS_PRIORITY, ledHandle);
-	addThread(radioTask, "radio", 500, NULL, 2, radioHandle);
+	//addThread(radioTask, "radio", 500, NULL, 2, radioHandle);
 	//addThread(FCS_SD::sdCardTask, "sdTask", 350, NULL, SDCARD_LOGGING_PRIORITY, &sdCardHandle);
 	//addThread(FCS_PID::pidTask, "pidTask", 350, NULL, CTRL_UPDATE_PRIORITY, &ctrlHandle);
 	//addThread(FCS_MOTOR::motorTask, "motorTask", 350, NULL, MOTOR_UPDATE_PRIORITY, &motorHandle);
-	//addThread(FCS_AHRS::ahrsTask, "ahrsTask", 8000, NULL, AHRS_UPDATE_PRIORITY, &ahrsHandle);
+	addThread(FCS_AHRS::ahrsTask, "ahrsTask", 8000, NULL, AHRS_UPDATE_PRIORITY, &ahrsHandle);
 
 	startScheduler(true);
 	
