@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 /* Chimera Includes */
+#include <Chimera/logging.hpp>
 #include <Chimera/gpio.hpp>
 
 /* FreeRTOS Includes */
@@ -16,6 +17,7 @@
 #include <ValkyrieFCS/include/led.hpp>
 
 using namespace Chimera::GPIO;
+using namespace Chimera::Logging;
 
 namespace FCS_LED
 {
@@ -25,16 +27,12 @@ namespace FCS_LED
 
 	void ledStatus(void* argument)
 	{
-		#ifdef DEBUG
-		volatile UBaseType_t stackHighWaterMark_LEDSTATUS = 0;
-		#endif
+		Console.log(Level::INFO, "LED Thread: Initializing\r\n");
 
 		GPIOClass armPin(PORTC, 8);
 		GPIOClass modePin(PORTC, 7);
 		GPIOClass errorPin(PORTC, 6);
 		
-
-		/* Set up the GPIO Led */
 		armPin.mode(OUTPUT_PUSH_PULL);
 		armPin.write(LOW);
 
@@ -45,16 +43,19 @@ namespace FCS_LED
 		errorPin.write(LOW);
 		
 		
+		Console.log(Level::INFO, "LED Thread: Initialization Complete\r\n");
 		Chimera::Threading::signalThreadSetupComplete();
-		
+		Console.log(Level::INFO, "LED Thread: Running\r\n");
+
 		TickType_t lastTimeWoken = xTaskGetTickCount();
+
+		#ifdef DEBUG
+		volatile UBaseType_t stackHighWaterMark_LEDSTATUS = uxTaskGetStackHighWaterMark(NULL);
+		Console.log(Level::DBG, "Led Thread: Remaining stack size after init is %d bytes\r\n", stackHighWaterMark_LEDSTATUS);
+		#endif
+
 		for (;;)
 		{
-			#ifdef DEBUG
-			activeTask = LED_STATUS_TASK;
-			stackHighWaterMark_LEDSTATUS = uxTaskGetStackHighWaterMark(NULL);
-			#endif
-			
 			armPin.write(HIGH);
 			vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(150));
 			armPin.write(LOW);

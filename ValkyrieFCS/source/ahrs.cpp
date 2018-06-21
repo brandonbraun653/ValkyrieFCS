@@ -3,16 +3,13 @@
 #include <stdlib.h>
 #include <math.h>
 
-/* Boost Includes */
-#include <boost/smart_ptr.hpp>
-#include <boost/make_shared.hpp>
-
 /* FreeRTOS Includes */
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
 
 /* Chimera Includes */
+#include <Chimera/logging.hpp>
 #include <Chimera/gpio.hpp>
 #include <Chimera/spi.hpp>
 
@@ -33,6 +30,7 @@
 
 using namespace Chimera::GPIO;
 using namespace Chimera::SPI;
+using namespace Chimera::Logging;
 
 #define AHRS_SPI_CHANNEL 2
 
@@ -53,6 +51,8 @@ namespace FCS_AHRS
 	
 	void ahrsTask(void* argument)
 	{
+		Console.log(Level::INFO, "AHRS Thread: Initializing\r\n");
+
 		#ifdef DEBUG
 		volatile float pitch;
 		volatile float roll;
@@ -66,8 +66,7 @@ namespace FCS_AHRS
 		volatile float mx;
 		volatile float my;
 		volatile float mz;
-		volatile UBaseType_t stackHighWaterMark_AHRS = 0;
-		volatile size_t bytesRemaining	= xPortGetFreeHeapSize();
+		volatile size_t bytesRemaining = xPortGetFreeHeapSize();
 		#endif
 
 		IMUData_t imuData;						/* Input struct to read from the IMU thread */
@@ -123,11 +122,15 @@ namespace FCS_AHRS
 		/*----------------------------------
 		* Initialize the IMU
 		*----------------------------------*/
-		GPIOClass_sPtr lsm_ss_xg = boost::make_shared<Chimera::GPIO::GPIOClass>(PORTC, 4);
-		GPIOClass_sPtr lsm_ss_m = boost::make_shared<Chimera::GPIO::GPIOClass>(PORTC, 3);
+		GPIOClass_sPtr lsm_ss_xg = std::make_shared<Chimera::GPIO::GPIOClass>(PORTC, 4);
+		GPIOClass_sPtr lsm_ss_m = std::make_shared<Chimera::GPIO::GPIOClass>(PORTC, 3);
 
 		LSM9DS1 imu(AHRS_SPI_CHANNEL, lsm_ss_xg, lsm_ss_m);
 		int count = 0;
+
+		imu.begin();
+		imu.calibrate(true);
+		imu.calibrateMag(true);
 
 
 		/*----------------------------------
@@ -143,18 +146,17 @@ namespace FCS_AHRS
 		float tau_accel = 0.01f;
 		float alpha_lp_accel = dt / tau_accel;
 		
-		
+		Console.log(Level::INFO, "AHRS Thread: Initialization Complete\r\n");
 		Chimera::Threading::signalThreadSetupComplete();
-
-		/* Force halt of the device if the IMU cannot be reached */
-		if (imu.begin() == 0)
-			BasicErrorHandler("The IMU WHO_AM_I registers did not return valid readings");
-
-		imu.calibrate(true); /* "true" forces an automatic software subtraction of the calculated bias from all further data */
-		imu.calibrateMag(true); /* "true" writes the offset into the mag sensor hardware for automatic subtraction in results */
-
+		Console.log(Level::INFO, "AHRS Thread: Running\r\n");
 
 		TickType_t lastTimeWoken = xTaskGetTickCount();
+
+		#ifdef DEBUG
+		volatile UBaseType_t stackHighWaterMark_AHRS = uxTaskGetStackHighWaterMark(NULL);
+		Console.log(Level::DBG, "AHRS Thread: Remaining stack size after init is %d bytes\r\n", stackHighWaterMark_AHRS);
+		#endif
+		
 		for (;;)
 		{
 			#ifdef DEBUG

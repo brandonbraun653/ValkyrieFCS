@@ -4,6 +4,7 @@
 #include <Chimera/threading.hpp>
 #include <Chimera/serial.hpp>
 #include <Chimera/gpio.hpp>
+#include <Chimera/logging.hpp>
 
 #if defined(DEBUG) && defined(USING_VGDB_PROFILER)
 #include "SysprogsProfiler.h"
@@ -25,6 +26,7 @@
 
 using namespace Chimera::GPIO;
 using namespace Chimera::Threading;
+using namespace Chimera::Logging;
 
 TaskHandle_t ledHandle;
 TaskHandle_t sdCardHandle;
@@ -51,6 +53,9 @@ int main(void)
 	 * 5. AHRS
 	 * 
 	 */
+	
+	Console.log(Level::INFO, "Starting task creation\r\n");
+
 	addThread(FCS_LED::ledStatus, "ledTask", 350, NULL, STATUS_LEDS_PRIORITY, ledHandle);
 	//addThread(radioTask, "radio", 500, NULL, 2, radioHandle);
 	//addThread(FCS_SD::sdCardTask, "sdTask", 350, NULL, SDCARD_LOGGING_PRIORITY, &sdCardHandle);

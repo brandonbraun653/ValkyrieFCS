@@ -10,6 +10,7 @@
 #include <Chimera/threading.hpp>
 #include <Chimera/gpio.hpp>
 #include <Chimera/serial.hpp>
+#include <Chimera/logging.hpp>
 
 /* ValkyrieRTX Includes */
 #include "rtx.hpp"
@@ -24,6 +25,7 @@
 #include <ValkyrieFCS/include/sdcard.hpp>
 
 using namespace Chimera::Serial;
+using namespace Chimera::Logging;
 
 void radioTask(void* argument)
 {
@@ -34,7 +36,13 @@ void radioTask(void* argument)
 	TickType_t lastTimeWoken = xTaskGetTickCount();
 	for (;;)
 	{
-		printf("Hey man\r\n");
+		//printf("Hey man\r\n");
+		//Console.log(Level::INFO, "This is an info message\r\n");
+		//Console.log(Level::WARN, "This is a warn message\r\n");
+		//Console.log(Level::ERROR, "This is an error message\r\n");
+		//Console.log(Level::FATAL, "This is a fatal message\r\n");
+		//Console.log(Level::DBG, "This is a debug message\r\n");
+		//Console.log(Level::MAX_LOG_LEVELS, "This is an unknown color\r\n");
 		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(1000));
 	}
 }
