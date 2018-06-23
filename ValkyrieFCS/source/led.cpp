@@ -51,7 +51,7 @@ namespace FCS_LED
 
 		#ifdef DEBUG
 		volatile UBaseType_t stackHighWaterMark_LEDSTATUS = uxTaskGetStackHighWaterMark(NULL);
-		Console.log(Level::DBG, "Led Thread: Remaining stack size after init is %d bytes\r\n", stackHighWaterMark_LEDSTATUS);
+		Console.log(Level::DBG, "LED Thread: Remaining stack size after init is %d bytes\r\n", stackHighWaterMark_LEDSTATUS);
 		#endif
 
 		for (;;)

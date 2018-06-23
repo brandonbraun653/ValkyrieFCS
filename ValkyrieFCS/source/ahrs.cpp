@@ -122,10 +122,7 @@ namespace FCS_AHRS
 		/*----------------------------------
 		* Initialize the IMU
 		*----------------------------------*/
-		GPIOClass_sPtr lsm_ss_xg = std::make_shared<Chimera::GPIO::GPIOClass>(PORTC, 4);
-		GPIOClass_sPtr lsm_ss_m = std::make_shared<Chimera::GPIO::GPIOClass>(PORTC, 3);
-
-		LSM9DS1 imu(AHRS_SPI_CHANNEL, lsm_ss_xg, lsm_ss_m);
+		LSM9DS1 imu(AHRS_SPI_CHANNEL, PORTC, 4, PORTC, 3);
 		int count = 0;
 
 		imu.begin();
