@@ -110,14 +110,14 @@ namespace FCS
 		 *	@param[in]	in		Address of data to be written
 		 *	@param[in]	len		Number of bytes to write
 		 **/
-		void write(uint32_t address, uint8_t* in, size_t len);
+		int write(uint32_t address, uint8_t* in, size_t len);
 
 		/**	Reads data starting from a given address
 		 *	@param[in]	address	Starting address to read from
 		 *	@param[out]	out		Address of data to write to
 		 *	@param[in]	len		Number of bytes to read
 		 **/
-		void read(uint32_t address, uint8_t* out, size_t len);
+		int read(uint32_t address, uint8_t* out, size_t len);
 
 		
 	};

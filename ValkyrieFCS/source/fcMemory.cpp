@@ -1,3 +1,5 @@
+/* Chimera Includes */
+#include <Chimera/logging.hpp>
 
 
 /* Project Includes */
@@ -5,7 +7,7 @@
 
 #define FLASH_PID_BASE		0x00000000
 
-
+using namespace Chimera::Logging;
 
 namespace FCS
 {
@@ -38,13 +40,18 @@ namespace FCS
 	FCSettings::Status FCSettings::get(MemoryObject objType, uint8_t* objAddr, size_t objLen)
 	{
 		if ((flashMemObjAddr[objType] + objLen) > maxFlashAddress)
-			return FLASH_MAX_ADDRESS_EXCEEDED;
-
-		read(flashMemObjAddr[objType], objAddr, objLen);
-
-		while (!flash->isReadComplete())
 		{
-			Chimera::delayMilliseconds(1);
+			Console.log(Level::ERROR, "Address invalid for accessing current flash chip. Max: %d, Requested: %d\r\n",
+				maxFlashAddress, (flashMemObjAddr[objType] + objLen));
+			return FLASH_MAX_ADDRESS_EXCEEDED;
+		}
+
+		Adesto::Status errorCode = static_cast<Adesto::Status>(read(flashMemObjAddr[objType], objAddr, objLen));
+
+		if (errorCode != Adesto::Status::FLASH_OK)
+		{
+			//Left as a placeholder for now. Waiting for more development on the actual read function first.
+			Console.log(Level::ERROR, "Unhandled error on flash read\r\n");
 		}
 
 		return FLASH_OK;
@@ -53,18 +60,29 @@ namespace FCS
 	FCSettings::Status FCSettings::set(MemoryObject objType, uint8_t* objAddr, size_t objLen)
 	{
 		if ((flashMemObjAddr[objType] + objLen) > maxFlashAddress)
-			return FLASH_MAX_ADDRESS_EXCEEDED;
-
-		write(flashMemObjAddr[objType], objAddr, objLen);
-
-		while (!flash->isWriteComplete())
 		{
-			Chimera::delayMilliseconds(1);
+			Console.log(Level::ERROR, "Address invalid for accessing current flash chip. Max: %d, Requested: %d\r\n", 
+				maxFlashAddress, (flashMemObjAddr[objType] + objLen));
+			return FLASH_MAX_ADDRESS_EXCEEDED;
 		}
+			
+		Adesto::Status errorCode = static_cast<Adesto::Status>(write(flashMemObjAddr[objType], objAddr, objLen));
+		
+		if (errorCode != Adesto::Status::FLASH_OK)
+		{
+			switch (errorCode)
+			{
+			case Adesto::Status::ERROR_WRITE_FAILURE:
+				Console.log(Level::ERROR, "Failed writing FCS parameter to flash memory!\r\n");
+				return FLASH_PROGRAMMING_ERROR;
+				break;
 
-		if (flash->isErasePgmError())
-			return FLASH_PROGRAMMING_ERROR;
+			//Add more as needed.
 
+			default: break;
+			}
+		}
+			
 		return FLASH_OK;
 	}
 
@@ -73,14 +91,14 @@ namespace FCS
 		return flash->getFlashSize();
 	}
 
-	void FCSettings::write(uint32_t address, uint8_t* in, size_t len)
+	int FCSettings::write(uint32_t address, uint8_t* in, size_t len)
 	{
-		flash->write(address, in, len);
+		return (int)flash->write(address, in, len);
 	}
 
-	void FCSettings::read(uint32_t address, uint8_t* out, size_t len)
+	int FCSettings::read(uint32_t address, uint8_t* out, size_t len)
 	{
-		flash->read(address, out, len);
+		return (int)flash->read(address, out, len);
 	}
 	
 
