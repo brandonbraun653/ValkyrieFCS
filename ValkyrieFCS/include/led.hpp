@@ -2,7 +2,7 @@
 #ifndef LED_HPP_
 #define LED_HPP_
 
-namespace FCS_LED
+namespace FCS
 {
 	extern void ledStatus(void* argument);
 }

@@ -34,7 +34,7 @@ using namespace Chimera::Logging;
 
 #define AHRS_SPI_CHANNEL 2
 
-namespace FCS_AHRS
+namespace FCS
 {
 	typedef float T;
 	typedef IMU::State<T> State;

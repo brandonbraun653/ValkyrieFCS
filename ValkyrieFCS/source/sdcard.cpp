@@ -27,7 +27,7 @@
 using namespace SD;
 using namespace Chimera::GPIO;
 
-namespace FCS_SD
+namespace FCS
 {
 	//const char* ahrsLogFilename = "ahrsLogMinimal.dat";
 	const char* ahrsLogFilename = "ahrsLogFull.dat";

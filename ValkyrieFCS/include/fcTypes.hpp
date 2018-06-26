@@ -6,7 +6,12 @@ namespace FCS
 {
 	namespace PID
 	{
-
+		struct __attribute__((packed)) PIDSettings
+		{
+			float kp = 0.0f;
+			float ki = 0.0f;
+			float kd = 0.0f;
+		};
 	}
 }
 

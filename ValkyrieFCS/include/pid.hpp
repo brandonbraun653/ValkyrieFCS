@@ -2,7 +2,7 @@
 #ifndef PID_HPP_
 #define PID_HPP_
 
-namespace FCS_PID
+namespace FCS
 {
 	extern void pidTask(void* argument);
 }

@@ -2,7 +2,7 @@
 #ifndef MOTORS_HPP_
 #define MOTORS_HPP_
 
-namespace FCS_MOTOR
+namespace FCS
 {
 	extern void motorTask(void* argument);
 }

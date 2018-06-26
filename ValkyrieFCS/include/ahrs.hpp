@@ -2,7 +2,7 @@
 #ifndef AHRS_HPP_
 #define AHRS_HPP_
 
-namespace FCS_AHRS
+namespace FCS
 {
 	extern void ahrsTask(void* argument);
 }

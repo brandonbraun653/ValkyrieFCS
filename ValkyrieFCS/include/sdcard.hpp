@@ -2,7 +2,7 @@
 #ifndef SDCARD_HPP_
 #define SDCARD_HPP_
 
-namespace FCS_SD
+namespace FCS
 {
 	extern void sdCardTask(void* argument);
 }

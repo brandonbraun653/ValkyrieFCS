@@ -19,9 +19,9 @@
 using namespace Chimera::GPIO;
 using namespace Chimera::Logging;
 
-namespace FCS_LED
+namespace FCS
 {
-	void parseTaskNotification(uint32_t notification)
+	void parseLEDTaskNotification(uint32_t notification)
 	{
 	}
 
