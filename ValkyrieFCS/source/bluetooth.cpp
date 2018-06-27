@@ -52,11 +52,11 @@ namespace FCS
 		#endif
 		for (;;)
 		{
-			errorCode = FCS::fcSettings.set(PID_TERMS_PITCH, pitch);
+			//errorCode = FCS::fcSettings.set(PID_TERMS_PITCH, pitch);
 
-			Chimera::delayMilliseconds(1000);
+			//Chimera::delayMilliseconds(1000);
 
-			errorCode = FCS::fcSettings.get(PID_TERMS_PITCH, pitch);
+			//errorCode = FCS::fcSettings.get(PID_TERMS_PITCH, pitch);
 
 			vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(1000));
 		}

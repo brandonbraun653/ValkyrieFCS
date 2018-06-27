@@ -41,7 +41,7 @@ namespace FCS
 	{
 		if ((flashMemObjAddr[objType] + objLen) > maxFlashAddress)
 		{
-			Console.log(Level::ERROR, "Address invalid for accessing current flash chip. Max: %d, Requested: %d\r\n",
+			Console.log(Level::ERROR, "Address invalid for accessing flash chip. Max: 0x%08x, Requested: 0x%08x\r\n",
 				maxFlashAddress, (flashMemObjAddr[objType] + objLen));
 			return FLASH_MAX_ADDRESS_EXCEEDED;
 		}
@@ -61,7 +61,7 @@ namespace FCS
 	{
 		if ((flashMemObjAddr[objType] + objLen) > maxFlashAddress)
 		{
-			Console.log(Level::ERROR, "Address invalid for accessing current flash chip. Max: %d, Requested: %d\r\n", 
+			Console.log(Level::ERROR, "Address invalid for accessing current flash chip. Max: 0x%08x, Requested: 0x%08x\r\n",
 				maxFlashAddress, (flashMemObjAddr[objType] + objLen));
 			return FLASH_MAX_ADDRESS_EXCEEDED;
 		}
