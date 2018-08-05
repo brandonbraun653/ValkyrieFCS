@@ -24,22 +24,39 @@
 #include <ValkyrieFCS/include/dataTypes.hpp>
 #include <ValkyrieFCS/include/sdcard.hpp>
 
-using namespace Chimera::Serial;
+/* XBEE Includes */
+#include <libxbee/include/xb_chimera_serial.hpp>
+#include <libxbee/include/modules/xbee_pro_s2/xbpros2.hpp>
+
+
 using namespace Chimera::Logging;
+using namespace Chimera::GPIO;
+using namespace Chimera::Serial;
 
-void radioTask(void* argument)
+using namespace libxbee::modules::XBEEProS2;
+
+namespace FCS
 {
-
-
-	Chimera::Threading::signalThreadSetupComplete();
-	
-	TickType_t lastTimeWoken = xTaskGetTickCount();
-	for (;;)
+	void radioTask(void* argument)
 	{
-		
-		vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(1000));
+		XBEEProS2 xbee(4, PORTA, 3);
+		xbee.discover(BaudRate::SERIAL_BAUD_115200);
+
+		Chimera::Threading::signalThreadSetupComplete();
+
+		TickType_t lastTimeWoken = xTaskGetTickCount();
+		for (;;)
+		{
+			if (xbee.ping())
+				Console.log(Level::INFO, "Ping Success!\r\n");
+			else
+				Console.log(Level::INFO, "Ping Failed!\r\n");
+			
+			vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(10000));
+		}
 	}
 }
+
 
 //using namespace ThorDef::GPIO;
 //

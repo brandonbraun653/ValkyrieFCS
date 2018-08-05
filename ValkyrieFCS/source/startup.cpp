@@ -1,5 +1,3 @@
-
-
 /* Chimera Includes */
 #include <Chimera/threading.hpp>
 #include <Chimera/serial.hpp>
@@ -58,12 +56,12 @@ int main(void)
 	Console.log(Level::INFO, "Starting task creation\r\n");
 
 	addThread(FCS::ledStatus, "ledTask", 350, NULL, STATUS_LEDS_PRIORITY, ledHandle);
-	addThread(FCS::bluetoothTask, "btTask", 350, NULL, BLUETOOTH_PRIORITY, btHandle);
-	//addThread(radioTask, "radio", 500, NULL, 2, radioHandle);
+	//addThread(FCS::bluetoothTask, "btTask", 350, NULL, BLUETOOTH_PRIORITY, btHandle);
+	addThread(FCS::radioTask, "radio", 500, NULL, 2, radioHandle);
 	//addThread(FCS::sdCardTask, "sdTask", 350, NULL, SDCARD_LOGGING_PRIORITY, &sdCardHandle);
 	//addThread(FCS::pidTask, "pidTask", 350, NULL, CTRL_UPDATE_PRIORITY, &ctrlHandle);
 	//addThread(FCS::motorTask, "motorTask", 350, NULL, MOTOR_UPDATE_PRIORITY, &motorHandle);
-	addThread(FCS::ahrsTask, "ahrsTask", 8000, NULL, AHRS_UPDATE_PRIORITY, &ahrsHandle);
+	//addThread(FCS::ahrsTask, "ahrsTask", 8000, NULL, AHRS_UPDATE_PRIORITY, &ahrsHandle);
 
 	startScheduler(true);
 	

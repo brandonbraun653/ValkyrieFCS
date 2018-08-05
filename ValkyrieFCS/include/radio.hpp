@@ -15,6 +15,10 @@ extern QueueHandle_t qRadio_Request;		/* Request Inputs */
 /*------------------------------
 * Radio Thread
 *-----------------------------*/
-extern void radioTask(void* argument);
+namespace FCS 
+{
+	extern void radioTask(void* argument);
+}
+
 
 #endif /* RADIO_HPP_ */

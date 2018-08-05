@@ -28,6 +28,9 @@
 #include "kalman/SquareRootUnscentedKalmanFilter.hpp"
 
 
+#include "enhancedMadgwick.hpp"
+
+
 using namespace Chimera::GPIO;
 using namespace Chimera::SPI;
 using namespace Chimera::Logging;
@@ -54,6 +57,7 @@ namespace FCS
 		Console.log(Level::INFO, "AHRS Thread: Initializing\r\n");
 
 		#ifdef DEBUG
+		volatile float p, r, y;
 		volatile float pitch;
 		volatile float roll;
 		volatile float yaw;
@@ -68,6 +72,22 @@ namespace FCS
 		volatile float mz;
 		volatile size_t bytesRemaining = xPortGetFreeHeapSize();
 		#endif
+
+		EnhancedMadgwick<T> em;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 		IMUData_t imuData;						/* Input struct to read from the IMU thread */
 		AHRSData_t ahrsData;					/* Output struct to push to the motor controller thread */
@@ -143,6 +163,11 @@ namespace FCS
 		float tau_accel = 0.01f;
 		float alpha_lp_accel = dt / tau_accel;
 		
+
+		imu.readMag();
+		mag_raw << -imu.mRaw[0], -imu.mRaw[1], -imu.mRaw[2];
+		em.attachMagRef(mag_raw);
+
 		Console.log(Level::INFO, "AHRS Thread: Initialization Complete\r\n");
 		Chimera::Threading::signalThreadSetupComplete();
 		Console.log(Level::INFO, "AHRS Thread: Running\r\n");
@@ -230,8 +255,17 @@ namespace FCS
 			ahrs.getEulerDeg(eulerDeg);
 			ahrsData(eulerDeg, accel_filtered, gyro_filtered, mag_filtered);
 			//ahrsData(eulerDeg, accel_raw, gyro_raw, mag_raw);
+			
+
+			Eigen::Matrix<T, 3, 1> angles = em.update(accel_filtered, mag_filtered);
+
+
 
 			#ifdef DEBUG
+			p = angles(0);
+			r = angles(1);
+			y = angles(2);
+
 			pitch = eulerDeg(0);
 			roll = eulerDeg(1);
 			yaw = eulerDeg(2);
