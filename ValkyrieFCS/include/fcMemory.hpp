@@ -1,6 +1,6 @@
 #pragma once
-#ifndef FC_MEMORY_HPP
-#define FC_MEMORY_HPP
+#ifndef FCS_MEMORY_HPP
+#define FCS_MEMORY_HPP
 
 /* Project Includes */
 #include <ValkyrieFCS/include/fcTypes.hpp>
@@ -13,17 +13,22 @@ namespace FCS
 {
 	enum MemoryObject : uint8_t
 	{
+        /* PID Parameters */
 		PID_TERMS_ROLL,
 		PID_TERMS_PITCH,
 		PID_TERMS_YAW,
+
+        /* XBEE Parameters */
+        XB_CFG_AT_TIMEOUT,
+        XB_CFG_GT_TIMEOUT,
+
 		MAX_OBJECTS_IN_MEM
 	};
 
 	/** Stores the current address in Flash Memory of a specific object referenced by FCS::MemoryObject. Initial
-	 *	values are set in assignFlashAddress() in fcMemory.cpp
-	 *	@note This object is not const and can be changed at run time. 
+	 *	values are set in assignFlashAddress() in fcMemory.cpp. 
 	 **/
-	extern uint32_t flashMemObjAddr[MemoryObject::MAX_OBJECTS_IN_MEM];
+	extern uint32_t settingsAddress[MemoryObject::MAX_OBJECTS_IN_MEM];
 
 	/** This class is intended to provide an easy to use interface for getting and setting 
 	 *	Flight Controller parameters stored in flash memory. Examples of such parameters could

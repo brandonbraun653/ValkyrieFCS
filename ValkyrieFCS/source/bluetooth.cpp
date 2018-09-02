@@ -37,7 +37,6 @@ namespace FCS
 		yaw.ki = 3.0;
 		yaw.kd = 3.0;
 
-		fcSettings.initialize(Adesto::AT45DB081E, 1, 1000000);
 		volatile FCSettings::Status errorCode = FCSettings::FLASH_OK;
 
 		Console.log(Level::INFO, "BT Thread: Initialization Complete\r\n");

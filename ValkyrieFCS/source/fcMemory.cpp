@@ -5,23 +5,29 @@
 /* Project Includes */
 #include <ValkyrieFCS/include/fcMemory.hpp>
 
-#define FLASH_PID_BASE		0x00000000
+#define FLASH_PID_BASE_ADDR		    0x00000000      /**< Memory: 64 bytes, 0x00 - 0x3F*/
+#define FLASH_XBEE_BASE_ADDR        0x00000040      /**< Memory: 128 bytes, 0x40 - 0x7F */
 
 using namespace Chimera::Logging;
 
 namespace FCS
 {
 	FCSettings fcSettings;
-	uint32_t flashMemObjAddr[MemoryObject::MAX_OBJECTS_IN_MEM];
+	uint32_t settingsAddress[MemoryObject::MAX_OBJECTS_IN_MEM];
 
 	void assignFlashAddress()
 	{
-		flashMemObjAddr[MemoryObject::PID_TERMS_ROLL]	= FLASH_PID_BASE;
-		flashMemObjAddr[MemoryObject::PID_TERMS_PITCH]	= FLASH_PID_BASE + 1 * sizeof(PID::PIDSettings);
-		flashMemObjAddr[MemoryObject::PID_TERMS_YAW]	= FLASH_PID_BASE + 2 * sizeof(PID::PIDSettings);
+        /* PID Parameters: 36 bytes */
+		settingsAddress[MemoryObject::PID_TERMS_ROLL]	= FLASH_PID_BASE_ADDR;
+		settingsAddress[MemoryObject::PID_TERMS_PITCH]	= settingsAddress[MemoryObject::PID_TERMS_ROLL]  + sizeof(PID::PIDSettings);
+		settingsAddress[MemoryObject::PID_TERMS_YAW]	= settingsAddress[MemoryObject::PID_TERMS_PITCH] + sizeof(PID::PIDSettings);
 
-		
-	}
+        assert(settingsAddress[MemoryObject::PID_TERMS_YAW] < FLASH_XBEE_BASE_ADDR);
+
+        /* XBEE Parameters: ? bytes (in progress) */
+        settingsAddress[MemoryObject::XB_CFG_AT_TIMEOUT] = FLASH_XBEE_BASE_ADDR;
+        settingsAddress[MemoryObject::XB_CFG_GT_TIMEOUT] = settingsAddress[MemoryObject::XB_CFG_AT_TIMEOUT] + sizeof(uint16_t);
+    }
 
 	FCSettings::Status FCSettings::initialize(Adesto::FlashChip chip, const int& spiChannel, uint32_t clockFreq)
 	{
@@ -39,14 +45,14 @@ namespace FCS
 
 	FCSettings::Status FCSettings::get(MemoryObject objType, uint8_t* objAddr, size_t objLen)
 	{
-		if ((flashMemObjAddr[objType] + objLen) > maxFlashAddress)
+		if ((settingsAddress[objType] + objLen) > maxFlashAddress)
 		{
 			Console.log(Level::ERROR, "Address invalid for accessing flash chip. Max: 0x%08x, Requested: 0x%08x\r\n",
-				maxFlashAddress, (flashMemObjAddr[objType] + objLen));
+				maxFlashAddress, (settingsAddress[objType] + objLen));
 			return FLASH_MAX_ADDRESS_EXCEEDED;
 		}
 
-		Adesto::Status errorCode = static_cast<Adesto::Status>(read(flashMemObjAddr[objType], objAddr, objLen));
+		Adesto::Status errorCode = static_cast<Adesto::Status>(read(settingsAddress[objType], objAddr, objLen));
 
 		if (errorCode != Adesto::Status::FLASH_OK)
 		{
@@ -59,14 +65,14 @@ namespace FCS
 
 	FCSettings::Status FCSettings::set(MemoryObject objType, uint8_t* objAddr, size_t objLen)
 	{
-		if ((flashMemObjAddr[objType] + objLen) > maxFlashAddress)
+		if ((settingsAddress[objType] + objLen) > maxFlashAddress)
 		{
 			Console.log(Level::ERROR, "Address invalid for accessing current flash chip. Max: 0x%08x, Requested: 0x%08x\r\n",
-				maxFlashAddress, (flashMemObjAddr[objType] + objLen));
+				maxFlashAddress, (settingsAddress[objType] + objLen));
 			return FLASH_MAX_ADDRESS_EXCEEDED;
 		}
 			
-		Adesto::Status errorCode = static_cast<Adesto::Status>(write(flashMemObjAddr[objType], objAddr, objLen));
+		Adesto::Status errorCode = static_cast<Adesto::Status>(write(settingsAddress[objType], objAddr, objLen));
 		
 		if (errorCode != Adesto::Status::FLASH_OK)
 		{

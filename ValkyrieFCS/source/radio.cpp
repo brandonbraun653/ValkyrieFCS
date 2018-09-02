@@ -22,7 +22,7 @@
 
 /* Project Includes */
 #include <ValkyrieFCS/include/dataTypes.hpp>
-#include <ValkyrieFCS/include/sdcard.hpp>
+#include <ValkyrieFCS/include/fcMemory.hpp>
 
 /* XBEE Includes */
 #include <libxbee/include/xb_chimera_serial.hpp>
@@ -33,6 +33,7 @@ using namespace Chimera::Logging;
 using namespace Chimera::GPIO;
 using namespace Chimera::Serial;
 
+using namespace libxbee;
 using namespace libxbee::modules::XBEEProS2;
 
 namespace FCS
@@ -40,17 +41,69 @@ namespace FCS
 	void radioTask(void* argument)
 	{
 		XBEEProS2 xbee(4, PORTA, 3);
-		xbee.discover(BaudRate::SERIAL_BAUD_115200);
+        fcSettings.initialize(Adesto::AT45DB081E, 1, 1000000);
 
 		Chimera::Threading::signalThreadSetupComplete();
+
+        /* Pull the last guard times from memory and update the XBEE object with the relevant data
+         * so that it will be able to communicate properly with the device. */
+        uint16_t guardTimeout = XB_MIN_GUARD_TIME_MS - 1;
+        uint16_t atModeTimeout = XB_MIN_AT_TIMEOUT_MS - 1;
+        fcSettings.get(MemoryObject::XB_CFG_AT_TIMEOUT, atModeTimeout);
+        fcSettings.get(MemoryObject::XB_CFG_GT_TIMEOUT, guardTimeout);
+
+        if ((XB_MIN_GUARD_TIME_MS <= guardTimeout) && (guardTimeout <= XB_MAX_GUARD_TIME_MS))
+        {
+            #ifdef DEBUG
+            Console.log(Level::INFO, "XBEE: Loaded guard time of [%d] mS from flash\r\n", guardTimeout);
+            #endif
+            xbee.guardTimeout_mS = guardTimeout;
+        }
+
+        if ((XB_MIN_AT_TIMEOUT_MS <= atModeTimeout) && (atModeTimeout <= XB_MAX_AT_TIMEOUT_MS))
+        {
+            #ifdef DEBUG
+            Console.log(Level::INFO, "XBEE: Loaded AT timeout of [%d] mS from flash\r\n", atModeTimeout);
+            #endif
+            xbee.atModeTimeout_mS = atModeTimeout;
+        }
+
+		xbee.discover(BaudRate::SERIAL_BAUD_115200);
+
+        libxbee::Config settings;
+        settings.commandModeTimeout = 1000;
+        settings.guardTime = 10;
+
+        /* Write the settings back to memory */
+        if (xbee.initialize(settings) == XB_OK)
+        {
+            //Put this into a function
+            if ((fcSettings.set(MemoryObject::XB_CFG_AT_TIMEOUT, xbee.atModeTimeout_mS) != FCSettings::FLASH_OK) ||
+                (fcSettings.set(MemoryObject::XB_CFG_GT_TIMEOUT, xbee.guardTimeout_mS) != FCSettings::FLASH_OK))
+            {
+                Console.log(Level::ERROR, "Failed writing settings to memory. %s, %s\r\n", __FILE__, __LINE__);
+            }
+        }
+        
+
+        #ifdef DEBUG
+        volatile UBaseType_t stackHighWaterMark_RADIO = uxTaskGetStackHighWaterMark(NULL);
+        Console.log(Level::DBG, "Radio Thread: Remaining stack size after init is %d bytes\r\n", stackHighWaterMark_RADIO);
+        #endif
 
 		TickType_t lastTimeWoken = xTaskGetTickCount();
 		for (;;)
 		{
-			if (xbee.ping())
-				Console.log(Level::INFO, "Ping Success!\r\n");
+            if (xbee.goToCommandMode() == XB_OK)
+            {
+                Console.log(Level::INFO, "Ping Success!\r\n");
+                
+                xbee.setATModeTimeout(1000);
+            }
 			else
-				Console.log(Level::INFO, "Ping Failed!\r\n");
+            {
+                Console.log(Level::INFO, "Ping Failed!\r\n");
+            }
 			
 			vTaskDelayUntil(&lastTimeWoken, pdMS_TO_TICKS(10000));
 		}
